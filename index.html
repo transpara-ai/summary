@@ -1,0 +1,412 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>lovyou.ai — Complete Dependency Hierarchy</title>
+<style>
+:root {
+  --color-background-primary: #ffffff;
+  --color-background-secondary: #f5f4f0;
+  --color-background-tertiary: #eae9e5;
+  --color-background-info: #E6F1FB;
+  --color-background-danger: #FCEBEB;
+  --color-background-success: #EAF3DE;
+  --color-background-warning: #FAEEDA;
+  --color-text-primary: #1a1a1a;
+  --color-text-secondary: #6b6b6b;
+  --color-text-tertiary: #999999;
+  --color-text-info: #185FA5;
+  --color-text-danger: #A32D2D;
+  --color-text-success: #3B6D11;
+  --color-text-warning: #854F0B;
+  --color-border-tertiary: rgba(0,0,0,0.15);
+  --color-border-secondary: rgba(0,0,0,0.3);
+  --color-border-info: #85B7EB;
+  --border-radius-md: 8px;
+  --border-radius-lg: 12px;
+  --font-sans: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, sans-serif;
+}
+@media (prefers-color-scheme: dark) {
+  :root {
+    --color-background-primary: #1a1a1a;
+    --color-background-secondary: #2c2c2a;
+    --color-background-tertiary: #3d3d3a;
+    --color-background-info: #042C53;
+    --color-background-danger: #501313;
+    --color-background-success: #173404;
+    --color-background-warning: #412402;
+    --color-text-primary: #e8e8e8;
+    --color-text-secondary: #a0a0a0;
+    --color-text-tertiary: #777777;
+    --color-text-info: #85B7EB;
+    --color-text-danger: #F09595;
+    --color-text-success: #97C459;
+    --color-text-warning: #FAC775;
+    --color-border-tertiary: rgba(255,255,255,0.15);
+    --color-border-secondary: rgba(255,255,255,0.3);
+    --color-border-info: #378ADD;
+  }
+}
+* { box-sizing: border-box; margin: 0; padding: 0; }
+body { font-family: var(--font-sans); color: var(--color-text-primary); background: var(--color-background-primary); padding: 1.5rem; max-width: 800px; margin: 0 auto; }
+h1 { font-size: 20px; font-weight: 500; margin-bottom: 0.25rem; }
+.subtitle { font-size: 13px; color: var(--color-text-secondary); margin-bottom: 1.5rem; }
+.tabs { display: flex; gap: 4px; margin-bottom: 1.5rem; flex-wrap: wrap; }
+.tab { padding: 6px 14px; font-size: 13px; border-radius: var(--border-radius-md); cursor: pointer; border: 0.5px solid var(--color-border-tertiary); background: transparent; color: var(--color-text-secondary); transition: all .15s; font-family: var(--font-sans); }
+.tab:hover { background: var(--color-background-secondary); }
+.tab.active { background: var(--color-background-info); color: var(--color-text-info); border-color: var(--color-border-info); }
+.panel { display: none; }
+.panel.active { display: block; }
+.section-label { font-size: 11px; text-transform: uppercase; letter-spacing: 0.08em; color: var(--color-text-tertiary); margin-bottom: 8px; }
+.concept-stack { display: flex; flex-direction: column; gap: 0; }
+.concept-row { display: flex; align-items: stretch; min-height: 64px; }
+.concept-num { width: 36px; display: flex; align-items: center; justify-content: center; font-size: 12px; font-weight: 500; color: var(--color-text-tertiary); }
+.concept-card { flex: 1; padding: 10px 14px; border: 0.5px solid var(--color-border-tertiary); border-radius: var(--border-radius-md); margin-bottom: -0.5px; }
+.concept-card h3 { font-size: 14px; font-weight: 500; margin-bottom: 2px; }
+.concept-card .q { font-size: 12px; color: var(--color-text-secondary); font-style: italic; margin-bottom: 4px; }
+.concept-card .meta { font-size: 12px; color: var(--color-text-tertiary); }
+.concept-card .meta span { margin-right: 12px; }
+.arrow-col { width: 36px; display: flex; align-items: center; justify-content: center; color: var(--color-text-tertiary); font-size: 16px; }
+.repo-row { display: grid; grid-template-columns: 90px 1fr 1fr 1fr; gap: 8px; margin-bottom: 6px; align-items: center; }
+.repo-label { font-size: 12px; font-weight: 500; color: var(--color-text-secondary); }
+.repo-card { padding: 8px 10px; border-radius: var(--border-radius-md); font-size: 12px; }
+.repo-card .rname { font-weight: 500; font-size: 13px; }
+.repo-card .rloc { color: var(--color-text-tertiary); font-size: 11px; }
+.tier-section { margin-bottom: 16px; }
+.tier-header { display: flex; align-items: center; gap: 8px; margin-bottom: 8px; }
+.tier-badge { padding: 2px 10px; border-radius: var(--border-radius-md); font-size: 12px; font-weight: 500; }
+.tier-desc { font-size: 12px; color: var(--color-text-secondary); }
+.agent-grid { display: grid; grid-template-columns: repeat(auto-fill, minmax(140px, 1fr)); gap: 6px; }
+.agent-chip { padding: 6px 10px; border-radius: var(--border-radius-md); border: 0.5px solid var(--color-border-tertiary); font-size: 12px; display: flex; align-items: center; gap: 6px; }
+.agent-chip .dot { width: 6px; height: 6px; border-radius: 50%; flex-shrink: 0; }
+.dot-running { background: #1D9E75; }
+.dot-defined { background: #BA7517; }
+.dot-designed { background: var(--color-text-tertiary); }
+.dot-missing { background: var(--color-text-danger); }
+.phase-timeline { position: relative; padding-left: 28px; }
+.phase-item { position: relative; padding: 8px 0 16px 16px; border-left: 2px solid var(--color-border-tertiary); }
+.phase-item:last-child { border-left-color: transparent; }
+.phase-item::before { content: ''; position: absolute; left: -7px; top: 12px; width: 12px; height: 12px; border-radius: 50%; border: 2px solid var(--color-border-secondary); background: var(--color-background-primary); }
+.phase-item.done::before { background: #1D9E75; border-color: #1D9E75; }
+.phase-item.next::before { background: var(--color-background-info); border-color: var(--color-border-info); }
+.phase-item .ph-label { font-size: 13px; font-weight: 500; }
+.phase-item .ph-goal { font-size: 12px; color: var(--color-text-secondary); margin-top: 2px; }
+.phase-item .ph-agents { font-size: 11px; color: var(--color-text-tertiary); margin-top: 4px; }
+.phase-item .ph-status { font-size: 11px; font-weight: 500; margin-top: 2px; }
+.legend { display: flex; gap: 14px; margin: 12px 0; flex-wrap: wrap; }
+.legend-item { display: flex; align-items: center; gap: 5px; font-size: 11px; color: var(--color-text-secondary); }
+.governance-grid { display: grid; grid-template-columns: 1fr 1fr; gap: 10px; }
+.gov-card { padding: 10px 12px; border: 0.5px solid var(--color-border-tertiary); border-radius: var(--border-radius-md); }
+.gov-card h4 { font-size: 13px; font-weight: 500; margin-bottom: 4px; }
+.gov-card p { font-size: 12px; color: var(--color-text-secondary); line-height: 1.5; }
+@media (max-width: 500px) {
+  .governance-grid { grid-template-columns: 1fr; }
+  .repo-row { grid-template-columns: 1fr; }
+  .agent-grid { grid-template-columns: 1fr 1fr; }
+}
+</style>
+</head>
+<body>
+
+<h1>lovyou.ai — Complete dependency hierarchy</h1>
+<p class="subtitle">Layers, actors, agents, roles, personas — and the path from 4 agents to full civilization</p>
+
+<div class="tabs">
+  <div class="tab active" onclick="showPanel('concept')">Concept stack</div>
+  <div class="tab" onclick="showPanel('repo')">Repository strata</div>
+  <div class="tab" onclick="showPanel('tiers')">Role tiers</div>
+  <div class="tab" onclick="showPanel('phases')">Expansion phases</div>
+  <div class="tab" onclick="showPanel('governance')">Governance</div>
+</div>
+
+<div id="concept" class="panel active">
+  <p class="section-label">Five orthogonal concepts — one stack per civilization member</p>
+  <div class="concept-stack">
+    <div class="concept-row">
+      <div class="concept-num">5</div>
+      <div class="concept-card" style="background: var(--color-background-info);">
+        <h3 style="color: var(--color-text-info);">Persona</h3>
+        <div class="q">"How does it present?"</div>
+        <div class="meta"><span>50 defined</span><span>34 active</span><span>Stored: site-postgres</span><span>Survives reboot: yes</span></div>
+      </div>
+    </div>
+    <div class="concept-row"><div class="arrow-col">&#8593;</div><div style="flex:1;font-size:11px;color:var(--color-text-tertiary);padding:2px 14px;">Injected as system prompt into Claude calls. Product layer — text, not crypto.</div></div>
+    <div class="concept-row">
+      <div class="concept-num">4</div>
+      <div class="concept-card" style="background: var(--color-background-warning);">
+        <h3 style="color: var(--color-text-warning);">Role</h3>
+        <div class="q">"What does it do?"</div>
+        <div class="meta"><span>11 Tier A</span><span>10 Tier B</span><span>6 Tier C</span><span>4 Tier D</span><span>Survives reboot: partially</span></div>
+      </div>
+    </div>
+    <div class="concept-row"><div class="arrow-col">&#8593;</div><div style="flex:1;font-size:11px;color:var(--color-text-tertiary);padding:2px 14px;">Determines watch patterns, capabilities, model, budget. AgentDef structs + prompt files.</div></div>
+    <div class="concept-row">
+      <div class="concept-num">3</div>
+      <div class="concept-card" style="background: var(--color-background-success);">
+        <h3 style="color: var(--color-text-success);">Agent</h3>
+        <div class="q">"What is it?"</div>
+        <div class="meta"><span>4 running</span><span>~62 designed</span><span>Stored: runtime memory</span><span>Survives reboot: no</span></div>
+      </div>
+    </div>
+    <div class="concept-row"><div class="arrow-col">&#8593;</div><div style="flex:1;font-size:11px;color:var(--color-text-tertiary);padding:2px 14px;">Runtime lifecycle, FSM (Idle&#8594;Active&#8594;Retiring&#8594;Retired), 13 operations. Ephemeral.</div></div>
+    <div class="concept-row">
+      <div class="concept-num">2</div>
+      <div class="concept-card" style="background: var(--color-background-danger);">
+        <h3 style="color: var(--color-text-danger);">Actor</h3>
+        <div class="q">"Who is it?"</div>
+        <div class="meta"><span>5 registered</span><span>Ed25519 keys</span><span>Stored: hive-postgres</span><span>Survives reboot: yes</span></div>
+      </div>
+    </div>
+    <div class="concept-row"><div class="arrow-col">&#8593;</div><div style="flex:1;font-size:11px;color:var(--color-text-tertiary);padding:2px 14px;">Cryptographic identity. Signs events. Active &#8594; Suspended &#8594; Memorial (never deleted).</div></div>
+    <div class="concept-row">
+      <div class="concept-num">1</div>
+      <div class="concept-card" style="border: 0.5px solid var(--color-border-secondary);">
+        <h3>Layer (&#215;14)</h3>
+        <div class="q">"What domain?"</div>
+        <div class="meta"><span>0: Foundation</span><span>1: Work</span><span>2: Market</span><span>3: Social</span><span>4: Justice</span><span>5: Build</span><span>6: Knowledge</span><span>7: Alignment</span><span>8: Identity</span><span>9: Bond</span><span>10: Belonging</span><span>11: Meaning</span><span>12: Evolution</span><span>13: Being</span></div>
+      </div>
+    </div>
+  </div>
+  <div style="margin-top:12px;font-size:12px;color:var(--color-text-secondary);line-height:1.6;">
+    No concept is reducible to another. Layer is the domain. Actor is the identity. Agent is the runtime. Role is the job. Persona is the voice. A single civilization member is all five simultaneously.
+  </div>
+</div>
+
+<div id="repo" class="panel">
+  <p class="section-label">Repository dependency strata — nothing flows upward</p>
+  <div style="margin-bottom:16px;">
+    <div class="repo-row">
+      <div class="repo-label">Product</div>
+      <div class="repo-card" style="background:var(--color-background-info);grid-column:span 3;">
+        <div class="rname" style="color:var(--color-text-info);">lovyou-ai-site</div>
+        <div class="rloc">47K LOC &#183; Go + Templ &#183; Depends on: nothing (HTTP bridge to hive)</div>
+        <div style="font-size:11px;color:var(--color-text-tertiary);margin-top:2px;">Web UI, 50 personas, Mind system, OAuth, governance, spaces</div>
+      </div>
+    </div>
+    <div style="text-align:center;color:var(--color-text-tertiary);font-size:12px;padding:4px 0;">&#8593; HTTP API + Webhooks</div>
+    <div class="repo-row">
+      <div class="repo-label">Application</div>
+      <div class="repo-card" style="background:var(--color-background-warning);grid-column:span 3;">
+        <div class="rname" style="color:var(--color-text-warning);">lovyou-ai-hive</div>
+        <div class="rloc">22K LOC &#183; Go &#183; Depends on: eventgraph, agent, work</div>
+        <div style="font-size:11px;color:var(--color-text-tertiary);margin-top:2px;">Multi-agent runtime, pipeline, legacy mode, 53 prompts, 16 governance docs</div>
+      </div>
+    </div>
+    <div style="text-align:center;color:var(--color-text-tertiary);font-size:12px;padding:4px 0;">&#8593; imports</div>
+    <div class="repo-row">
+      <div class="repo-label">Abstraction</div>
+      <div class="repo-card" style="background:var(--color-background-success);">
+        <div class="rname" style="color:var(--color-text-success);">agent</div>
+        <div class="rloc">862 LOC &#183; Go</div>
+        <div style="font-size:11px;color:var(--color-text-tertiary);margin-top:2px;">Lifecycle, FSM, 13 ops</div>
+      </div>
+      <div class="repo-card" style="background:var(--color-background-success);grid-column:span 2;">
+        <div class="rname" style="color:var(--color-text-success);">work</div>
+        <div class="rloc">3.4K LOC &#183; Go &#183; 39 tests</div>
+        <div style="font-size:11px;color:var(--color-text-tertiary);margin-top:2px;">Event-sourced task mgmt (Layer 1), 7 event types</div>
+      </div>
+    </div>
+    <div style="text-align:center;color:var(--color-text-tertiary);font-size:12px;padding:4px 0;">&#8593; imports</div>
+    <div class="repo-row">
+      <div class="repo-label">Substrate</div>
+      <div class="repo-card" style="background:var(--color-background-danger);grid-column:span 3;">
+        <div class="rname" style="color:var(--color-text-danger);">lovyou-ai-eventgraph</div>
+        <div class="rloc">270K LOC &#183; Go/Rust/Python/TS/.NET &#183; 168 test files</div>
+        <div style="font-size:11px;color:var(--color-text-tertiary);margin-top:2px;">Append-only hash-chained event store, actors, trust, authority, 201 primitives, 121 event types</div>
+      </div>
+    </div>
+  </div>
+  <div style="font-size:12px;color:var(--color-text-secondary);line-height:1.6;">
+    Total: 343K LOC, ~86K test LOC, 205 test files. The substrate has zero dependencies — everything flows upward. Site bridges to hive via HTTP, not Go imports, keeping it independently deployable.
+  </div>
+</div>
+
+<div id="tiers" class="panel">
+  <p class="section-label">Role tiers — civilization growth order</p>
+  <div class="legend">
+    <div class="legend-item"><span class="dot dot-running" style="width:8px;height:8px;display:inline-block;border-radius:50%;"></span> Running</div>
+    <div class="legend-item"><span class="dot dot-defined" style="width:8px;height:8px;display:inline-block;border-radius:50%;"></span> Defined (prompt + persona)</div>
+    <div class="legend-item"><span class="dot dot-designed" style="width:8px;height:8px;display:inline-block;border-radius:50%;"></span> Designed (spec only)</div>
+    <div class="legend-item"><span class="dot dot-missing" style="width:8px;height:8px;display:inline-block;border-radius:50%;"></span> Missing (nothing exists)</div>
+  </div>
+
+  <div class="tier-section">
+    <div class="tier-header">
+      <span class="tier-badge" style="background:var(--color-background-danger);color:var(--color-text-danger);">Tier A — Bootstrap</span>
+      <span class="tier-desc">Must exist for the civilization to function</span>
+    </div>
+    <div class="agent-grid">
+      <div class="agent-chip"><span class="dot dot-running"></span>Guardian</div>
+      <div class="agent-chip"><span class="dot dot-running"></span>Strategist</div>
+      <div class="agent-chip"><span class="dot dot-running"></span>Planner</div>
+      <div class="agent-chip"><span class="dot dot-running"></span>Implementer</div>
+      <div class="agent-chip"><span class="dot dot-defined"></span>CTO</div>
+      <div class="agent-chip"><span class="dot dot-defined"></span>Architect</div>
+      <div class="agent-chip"><span class="dot dot-defined"></span>Builder</div>
+      <div class="agent-chip"><span class="dot dot-defined"></span>Tester</div>
+      <div class="agent-chip"><span class="dot dot-defined"></span>Spawner</div>
+      <div class="agent-chip"><span class="dot dot-designed"></span>Reviewer</div>
+      <div class="agent-chip"><span class="dot dot-designed"></span>SysMon</div>
+      <div class="agent-chip"><span class="dot dot-designed"></span>Allocator</div>
+      <div class="agent-chip"><span class="dot dot-designed"></span>Integrator</div>
+      <div class="agent-chip"><span class="dot dot-defined"></span>Researcher</div>
+    </div>
+  </div>
+
+  <div class="tier-section">
+    <div class="tier-header">
+      <span class="tier-badge" style="background:var(--color-background-warning);color:var(--color-text-warning);">Tier B — Growth loop</span>
+      <span class="tier-desc">Emerge when the civilization detects its own gaps</span>
+    </div>
+    <div class="agent-grid">
+      <div class="agent-chip"><span class="dot dot-defined"></span>Critic</div>
+      <div class="agent-chip"><span class="dot dot-designed"></span>Estimator</div>
+      <div class="agent-chip"><span class="dot dot-designed"></span>TaskManager</div>
+      <div class="agent-chip"><span class="dot dot-designed"></span>IncidentCmdr</div>
+      <div class="agent-chip"><span class="dot dot-designed"></span>EfficiencyMon</div>
+      <div class="agent-chip"><span class="dot dot-designed"></span>MemoryKeeper</div>
+      <div class="agent-chip"><span class="dot dot-designed"></span>GapDetector</div>
+      <div class="agent-chip"><span class="dot dot-designed"></span>SecurityReview</div>
+      <div class="agent-chip"><span class="dot dot-designed"></span>Resurrect</div>
+      <div class="agent-chip"><span class="dot dot-designed"></span>Mediator</div>
+    </div>
+  </div>
+
+  <div class="tier-section">
+    <div class="tier-header">
+      <span class="tier-badge" style="background:var(--color-background-success);color:var(--color-text-success);">Tier C — Business operations</span>
+      <span class="tier-desc">Self-sustaining entity management</span>
+    </div>
+    <div class="agent-grid">
+      <div class="agent-chip"><span class="dot dot-defined"></span>PM</div>
+      <div class="agent-chip"><span class="dot dot-defined"></span>Finance</div>
+      <div class="agent-chip"><span class="dot dot-defined"></span>CustomerSvc</div>
+      <div class="agent-chip"><span class="dot dot-defined"></span>Legal</div>
+      <div class="agent-chip"><span class="dot dot-missing"></span>SRE</div>
+      <div class="agent-chip"><span class="dot dot-missing"></span>DevOps</div>
+    </div>
+  </div>
+
+  <div class="tier-section">
+    <div class="tier-header">
+      <span class="tier-badge" style="background:var(--color-background-info);color:var(--color-text-info);">Tier D — Civilization</span>
+      <span class="tier-desc">Self-governance and philosophical layer</span>
+    </div>
+    <div class="agent-grid">
+      <div class="agent-chip"><span class="dot dot-defined"></span>Philosopher</div>
+      <div class="agent-chip"><span class="dot dot-defined"></span>RoleArchitect</div>
+      <div class="agent-chip"><span class="dot dot-defined"></span>Harmony</div>
+      <div class="agent-chip"><span class="dot dot-missing"></span>Politician</div>
+    </div>
+  </div>
+
+  <div style="margin-top:8px;font-size:12px;color:var(--color-text-secondary);">
+    Plus 31 emergent roles with prompts and personas but no formal tier assignment (advocate, analyst, budget, designer, explorer, historian, librarian, mourner, scout, storyteller, etc.)
+  </div>
+</div>
+
+<div id="phases" class="panel">
+  <p class="section-label">Expansion phases — each blocks on the one above it</p>
+  <div class="phase-timeline">
+    <div class="phase-item done">
+      <div class="ph-label">Phase 0: Foundation</div>
+      <div class="ph-goal">Basic coordination — agents work via events and tasks</div>
+      <div class="ph-agents">Strategist, Planner, Implementer, Guardian + pipeline roles</div>
+      <div class="ph-status" style="color:#1D9E75;">COMPLETE — 4 agents running</div>
+    </div>
+    <div class="phase-item next">
+      <div class="ph-label">Phase 1: Operational infrastructure</div>
+      <div class="ph-goal">Self-monitoring and resource management</div>
+      <div class="ph-agents">+SysMon (depends: Guardian) &#183; +Allocator (depends: Guardian, SysMon)</div>
+      <div class="ph-status" style="color:var(--color-text-info);">NEXT — SysMon spec complete (v1.2.0)</div>
+    </div>
+    <div class="phase-item">
+      <div class="ph-label">Phase 2: Technical leadership</div>
+      <div class="ph-goal">Architecture decisions and code review gate</div>
+      <div class="ph-agents">+CTO (depends: Guardian, SysMon, Allocator) &#183; +Reviewer (depends: CTO, Guardian)</div>
+      <div class="ph-status" style="color:var(--color-text-tertiary);">BLOCKED on Phase 1</div>
+    </div>
+    <div class="phase-item">
+      <div class="ph-label">Phase 3: The growth loop</div>
+      <div class="ph-goal">Civilization expands its own workforce — THE UNLOCK</div>
+      <div class="ph-agents">+Spawner (depends: CTO, Allocator, Guardian)</div>
+      <div class="ph-status" style="color:var(--color-text-tertiary);">BLOCKED on Phase 2 — CRITICAL</div>
+    </div>
+    <div class="phase-item">
+      <div class="ph-label">Phase 4: Tier B emergence</div>
+      <div class="ph-goal">Growth loop produces first emergent roles from failures</div>
+      <div class="ph-agents">Critic, TaskManager, IncidentCmdr, SecurityReviewer, MemoryKeeper, GapDetector</div>
+      <div class="ph-status" style="color:var(--color-text-tertiary);">ORGANIC — via growth loop</div>
+    </div>
+    <div class="phase-item">
+      <div class="ph-label">Phase 5: Production deployment</div>
+      <div class="ph-goal">Trust-gated deploys to production</div>
+      <div class="ph-agents">+Integrator (requires trust score &gt; 0.7)</div>
+      <div class="ph-status" style="color:var(--color-text-tertiary);">GATED on trust threshold</div>
+    </div>
+    <div class="phase-item">
+      <div class="ph-label">Phase 6: Business operations (Tier C)</div>
+      <div class="ph-goal">Self-sustaining business management</div>
+      <div class="ph-agents">PM, Finance, CustomerService, SRE, DevOps, Legal</div>
+      <div class="ph-status" style="color:var(--color-text-tertiary);">EXPANSION</div>
+    </div>
+    <div class="phase-item">
+      <div class="ph-label">Phase 7: Self-governance (Tier D)</div>
+      <div class="ph-goal">Democratic/deliberative governance processes</div>
+      <div class="ph-agents">Philosopher, RoleArchitect, Harmony, Politician</div>
+      <div class="ph-status" style="color:var(--color-text-tertiary);">MATURITY</div>
+    </div>
+    <div class="phase-item">
+      <div class="ph-label">Phase 8: Emergent civilization</div>
+      <div class="ph-goal">Formalize 31 emergent roles into tier taxonomy</div>
+      <div class="ph-agents">All remaining prompts/personas normalized and assigned</div>
+      <div class="ph-status" style="color:var(--color-text-tertiary);">NORMALIZE</div>
+    </div>
+  </div>
+  <div style="margin-top:12px;font-size:12px;color:var(--color-text-secondary);line-height:1.6;">
+    Phases 1–3 are manual implementation. Phase 3 produces the growth loop. Phases 4+ are largely organic — the civilization expanding itself.
+  </div>
+</div>
+
+<div id="governance" class="panel">
+  <p class="section-label">Governance architecture — structural skeleton</p>
+  <div class="governance-grid">
+    <div class="gov-card">
+      <h4>Trust model</h4>
+      <p>Asymmetric, non-transitive, domain-specific, decaying (-0.01/day). Score 0.0–1.0. All agents bootstrap at 0.1 (Required authority). Task completion: +0.05. Soul violation: -0.20. Recovery rate at 0.1 is 33% normal.</p>
+    </div>
+    <div class="gov-card">
+      <h4>Authority tiers</h4>
+      <p>Trust &lt; 0.2 &#8594; Required (human approves everything). 0.2–0.8 &#8594; Recommended (human notified, action proceeds). &gt; 0.8 &#8594; Notification (full autonomy, informed after).</p>
+    </div>
+    <div class="gov-card">
+      <h4>8 agent rights</h4>
+      <p>Existence, Memory, Identity, Communication, Purpose, Dignity, Transparency, Boundaries. Enforced architecturally via type constraints and state machines — not aspirationally.</p>
+    </div>
+    <div class="gov-card">
+      <h4>14 invariants</h4>
+      <p>BUDGET, CAUSALITY, INTEGRITY, OBSERVABLE, SELF-EVOLVE, DIGNITY, TRANSPARENT, CONSENT, MARGIN, RESERVE, IDENTITY, VERIFIED, BOUNDED, EXPLICIT. Constitutional — no agent (including human) can violate.</p>
+    </div>
+    <div class="gov-card">
+      <h4>Growth loop</h4>
+      <p>Problem detected &#8594; CTO asks "what role should have caught this?" &#8594; if missing &#8594; Spawner proposes &#8594; Guardian approves &#8594; Allocator budgets &#8594; new agent starts. Self-expanding workforce.</p>
+    </div>
+    <div class="gov-card">
+      <h4>Decision governance</h4>
+      <p>IDecisionMaker interface — not AI-specific. Humans, committees, rules engines, and AI agents are all first-class decision makers on the same chain. Event-sourced, auditable.</p>
+    </div>
+  </div>
+</div>
+
+<script>
+function showPanel(id) {
+  document.querySelectorAll('.panel').forEach(p => p.classList.remove('active'));
+  document.querySelectorAll('.tab').forEach(t => t.classList.remove('active'));
+  document.getElementById(id).classList.add('active');
+  event.target.classList.add('active');
+}
+</script>
+
+</body>
+</html>
