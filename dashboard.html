@@ -239,6 +239,12 @@ body {
   display: none;
 }
 
+.chain-alert.chain-alert-unknown {
+  background: var(--amber-dim);
+  border-color: var(--amber);
+  color: var(--amber);
+}
+
 /* ── SECTION ────────────────────────────────────── */
 .section {
   background: var(--bg-card);
@@ -1018,14 +1024,23 @@ body {
   // ── CHAIN ALERT (exception-only) ───────────────────
   function renderChainAlert(hive) {
     var alertEl = document.getElementById("chain-alert");
-    if (!hive || hive.chain_ok !== false) {
+    if (!hive) {
       alertEl.style.display = "none";
       return;
     }
-    alertEl.style.display = "block";
-    alertEl.textContent = "\u26A0 CHAIN INTEGRITY FAILURE \u2014 " +
-      ((hive.chain_length || 0).toLocaleString()) +
-      " events, verification failed";
+    if (hive.chain_ok === false) {
+      alertEl.style.display = "block";
+      alertEl.className = "chain-alert";
+      alertEl.textContent = "\u26A0 CHAIN INTEGRITY FAILURE \u2014 " +
+        ((hive.chain_length || 0).toLocaleString()) +
+        " events, verification failed";
+    } else if (hive.chain_ok == null) {
+      alertEl.style.display = "block";
+      alertEl.className = "chain-alert chain-alert-unknown";
+      alertEl.textContent = "Chain integrity unknown \u2014 not yet verified";
+    } else {
+      alertEl.style.display = "none";
+    }
   }
 
   // ── PHASES ────────────────────────────────────────
@@ -1154,14 +1169,12 @@ body {
     var iterValEl = el("span", { cls: "agent-val", text: iterText });
     iterRow.appendChild(iterValEl);
 
-    // Burn rate computation
+    // Burn rate — color by current budget consumption percentage
     if (iter > 0 && a.started_at) {
       var elapsedMin = (Date.now() - new Date(a.started_at).getTime()) / 60000;
       if (elapsedMin > 0.5) {
         var burnRate = iter / elapsedMin;
-        var projectedTotal = burnRate * (elapsedMin + 60); // project 1 hour out
-        var projPct = maxIter > 0 ? (projectedTotal / maxIter) * 100 : 0;
-        var burnCls = projPct > 80 ? "burn-danger" : projPct > 50 ? "burn-warn" : "burn-ok";
+        var burnCls = pct > 80 ? "burn-danger" : pct > 50 ? "burn-warn" : "burn-ok";
         var burnEl = el("span", { cls: "burn-rate " + burnCls, text: "(" + burnRate.toFixed(1) + "/min)" });
         iterRow.appendChild(burnEl);
       }
