@@ -51,7 +51,7 @@ Five sections, all on one scrollable page:
 
 The dashboard can be served from:
 
-- GitHub Pages: `transpara-ai.github.io/lovyou-ai-summary/dashboard.html?api=...&key=...`
+- GitHub Pages: `transpara-ai.github.io/summary/dashboard.html?api=...&key=...`
 - A file server on nucbuntu: `python3 -m http.server 9000`
 - Opened directly in a browser as a local file (CORS must be open on the work-server, which it is)
 
