@@ -203,7 +203,7 @@ This means seed data is authoritative for structure, but manual phase updates su
 INSERT INTO telemetry_phases (phase, label, status, started_at, completed_at, notes) VALUES
     (0, 'Foundation',                    'complete',    '2026-03-01', '2026-03-15', 'Strategist, Planner, Implementer, Guardian running. 6 agents functional, 8 hive runs.'),
     (1, 'Operational infrastructure',    'complete',    '2026-03-20', '2026-04-04', 'SysMon + Allocator graduated and running. 40 health.report events confirm SysMon active.'),
-    (2, 'Technical leadership',          'complete',    '2026-04-04', '2026-04-05', 'CTO + Reviewer graduated and running.'),
+    (2, 'Technical leadership',          'in_progress', '2026-04-04', NULL, 'CTO running. Reviewer not yet built.'),
     (3, 'The growth loop',               'in_progress', '2026-04-05', NULL, 'Spawner alive. THE UNLOCK.'),
     (4, 'Tier B emergence',              'blocked',     NULL, NULL, 'Organic via growth loop'),
     (5, 'Production deployment',         'blocked',     NULL, NULL, 'Integrator — trust-gated (>0.7)'),
