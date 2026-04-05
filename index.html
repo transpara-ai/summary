@@ -245,10 +245,10 @@ h1 { font-size: 20px; font-weight: 500; margin-bottom: 0.25rem; }
       <div class="agent-chip"><span class="dot dot-defined"></span>Architect</div>
       <div class="agent-chip"><span class="dot dot-defined"></span>Builder</div>
       <div class="agent-chip"><span class="dot dot-defined"></span>Tester</div>
-      <div class="agent-chip"><span class="dot dot-defined"></span>Spawner</div>
+      <div class="agent-chip"><span class="dot dot-running"></span>Spawner</div>
       <div class="agent-chip"><span class="dot dot-designed"></span>Reviewer</div>
-      <div class="agent-chip"><span class="dot dot-designed"></span>SysMon</div>
-      <div class="agent-chip"><span class="dot dot-designed"></span>Allocator</div>
+      <div class="agent-chip"><span class="dot dot-running"></span>SysMon</div>
+      <div class="agent-chip"><span class="dot dot-running"></span>Allocator</div>
       <div class="agent-chip"><span class="dot dot-designed"></span>Integrator</div>
       <div class="agent-chip"><span class="dot dot-defined"></span>Researcher</div>
     </div>
@@ -313,25 +313,25 @@ h1 { font-size: 20px; font-weight: 500; margin-bottom: 0.25rem; }
       <div class="ph-label">Phase 0: Foundation</div>
       <div class="ph-goal">Basic coordination — agents work via events and tasks</div>
       <div class="ph-agents">Strategist, Planner, Implementer, Guardian + pipeline roles</div>
-      <div class="ph-status" style="color:#1D9E75;">COMPLETE — 4 agents running</div>
+      <div class="ph-status" style="color:#1D9E75;">COMPLETE — foundation agents running</div>
     </div>
-    <div class="phase-item next">
+    <div class="phase-item done">
       <div class="ph-label">Phase 1: Operational infrastructure</div>
       <div class="ph-goal">Self-monitoring and resource management</div>
       <div class="ph-agents">+SysMon (depends: Guardian) &#183; +Allocator (depends: Guardian, SysMon)</div>
-      <div class="ph-status" style="color:var(--color-text-info);">NEXT — SysMon spec complete (v1.2.0)</div>
+      <div class="ph-status" style="color:#1D9E75;">COMPLETE — SysMon + Allocator running</div>
     </div>
-    <div class="phase-item">
+    <div class="phase-item done">
       <div class="ph-label">Phase 2: Technical leadership</div>
       <div class="ph-goal">Architecture decisions and code review gate</div>
       <div class="ph-agents">+CTO (depends: Guardian, SysMon, Allocator) &#183; +Reviewer (depends: CTO, Guardian)</div>
-      <div class="ph-status" style="color:var(--color-text-tertiary);">BLOCKED on Phase 1</div>
+      <div class="ph-status" style="color:#1D9E75;">COMPLETE — CTO + Reviewer running</div>
     </div>
-    <div class="phase-item">
+    <div class="phase-item next">
       <div class="ph-label">Phase 3: The growth loop</div>
       <div class="ph-goal">Civilization expands its own workforce — THE UNLOCK</div>
       <div class="ph-agents">+Spawner (depends: CTO, Allocator, Guardian)</div>
-      <div class="ph-status" style="color:var(--color-text-tertiary);">BLOCKED on Phase 2 — CRITICAL</div>
+      <div class="ph-status" style="color:var(--color-text-info);">ACTIVE — Spawner alive</div>
     </div>
     <div class="phase-item">
       <div class="ph-label">Phase 4: Tier B emergence</div>
@@ -365,7 +365,7 @@ h1 { font-size: 20px; font-weight: 500; margin-bottom: 0.25rem; }
     </div>
   </div>
   <div style="margin-top:12px;font-size:12px;color:var(--color-text-secondary);line-height:1.6;">
-    Phases 1–3 are manual implementation. Phase 3 produces the growth loop. Phases 4+ are largely organic — the civilization expanding itself.
+    Phases 0–2 complete. Phase 3 (growth loop) active — Spawner alive. Phases 4+ are largely organic — the civilization expanding itself.
   </div>
 </div>
 
