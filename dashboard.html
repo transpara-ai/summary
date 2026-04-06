@@ -3,7 +3,7 @@
 <head>
 <meta charset="UTF-8">
 <meta name="viewport" content="width=device-width, initial-scale=1.0">
-<title>Transpara-AI — Mission Control v2</title>
+<title>Transpara-AI — Mission Control</title>
 <style>
 * { box-sizing: border-box; margin: 0; padding: 0; }
 
@@ -942,6 +942,7 @@ body {
   var REFRESH_MS     = 10000;
   var lastSuccess    = null;
   var consecutiveFails = 0;
+  var pollController = null;  // AbortController for in-flight fetch
   var isUserScrolled = false;
   var lastAgents     = [];
 
@@ -953,10 +954,18 @@ body {
 
   // ── FETCH ──────────────────────────────────────────
   function refresh() {
-    fetch(API_BASE + "/telemetry/status", USE_COOKIE_AUTH
-      ? { credentials: "same-origin" }
-      : { headers: { Authorization: "Bearer " + API_KEY } }
-    )
+    // Abort any in-flight request to prevent connection pile-up
+    if (pollController) pollController.abort();
+    pollController = new AbortController();
+
+    var opts = { signal: pollController.signal };
+    if (USE_COOKIE_AUTH) {
+      opts.credentials = "same-origin";
+    } else {
+      opts.headers = { Authorization: "Bearer " + API_KEY };
+    }
+
+    fetch(API_BASE + "/telemetry/status", opts)
     .then(function (res) {
       if (res.status === 503) {
         setConnStatus("stale", "Telemetry not initialized");
@@ -979,8 +988,8 @@ body {
       renderEvents(lastEvents);
     })
     .catch(function (err) {
+      if (err.name === "AbortError") return; // intentional cancel, ignore
       consecutiveFails++;
-      // First failure: show stale (transient). Escalate to error after 3 consecutive failures.
       if (consecutiveFails < 3) {
         setConnStatus("stale", "Retrying\u2026");
       } else {
@@ -1003,7 +1012,6 @@ body {
   function setConnStatus(state, text) {
     if (state === _connState) return; // no-op if unchanged
     _connState = state;
-    console.log("[conn]", state, text);
     document.getElementById("conn-dot").className  = "conn-dot " + state;
     document.getElementById("conn-status").className = "conn-status " + (state === "connected" ? "" : state);
     document.getElementById("conn-text").textContent = text;
