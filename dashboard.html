@@ -1183,7 +1183,7 @@ body {
 
     // Cost row — bold, with hot-spender indicator (change #7)
     var costRow = el("div", { cls: "agent-row" });
-    costRow.appendChild(el("span", { cls: "agent-label", text: "Cost" }));
+    costRow.appendChild(el("span", { cls: "agent-label", text: "Est. Cost", title: "Estimated at API rates" }));
     var costValCls = "agent-val bold" + (isHotCost ? " cost-hot" : "");
     var costText = costStr;
     if (isHotCost && totalCost > 0) {
@@ -1283,7 +1283,7 @@ body {
     }));
 
     // Daily cost card (change #9 — handle null cap)
-    grid.appendChild(buildHiveCard("Daily Cost", function (card) {
+    var costCard = buildHiveCard("Est. Cost", function (card) {
       if (hive.daily_cost != null) {
         card.appendChild(el("div", { cls: "hive-card-val", text: fmtCost(hive.daily_cost) }));
         if (hive.daily_cap != null && hive.daily_cap > 0) {
@@ -1304,7 +1304,9 @@ body {
         card.appendChild(el("div", { cls: "hive-card-val", text: "\u2014" }));
         card.appendChild(el("div", { cls: "hive-card-sub", text: "no data" }));
       }
-    }));
+    });
+    costCard.title = "Estimated at API rates";
+    grid.appendChild(costCard);
 
     // Top spender card (change #7)
     if (agents.length > 0) {
