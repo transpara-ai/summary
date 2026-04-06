@@ -3,7 +3,7 @@
 <head>
 <meta charset="UTF-8">
 <meta name="viewport" content="width=device-width, initial-scale=1.0">
-<title>Transpara-AI — Mission Control</title>
+<title>Transpara-AI — Mission Control v2</title>
 <style>
 * { box-sizing: border-box; margin: 0; padding: 0; }
 
@@ -999,7 +999,11 @@ body {
     if (el) el.textContent = new Date().toLocaleTimeString();
   }
 
+  var _connState = "";
   function setConnStatus(state, text) {
+    if (state === _connState) return; // no-op if unchanged
+    _connState = state;
+    console.log("[conn]", state, text);
     document.getElementById("conn-dot").className  = "conn-dot " + state;
     document.getElementById("conn-status").className = "conn-status " + (state === "connected" ? "" : state);
     document.getElementById("conn-text").textContent = text;
