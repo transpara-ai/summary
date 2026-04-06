@@ -997,13 +997,6 @@ body {
   function tickClock() {
     var el = document.getElementById("topbar-time");
     if (el) el.textContent = new Date().toLocaleTimeString();
-
-    if (lastSuccess === null) return;
-    var ago = Math.floor((Date.now() - lastSuccess) / 1000);
-
-    if (ago < 15)       setConnStatus("connected", "Live");
-    else if (ago < 60)  setConnStatus("stale",     "Last update: " + ago + "s ago");
-    else                setConnStatus("stale",      "Last update: " + ago + "s ago");
   }
 
   function setConnStatus(state, text) {
