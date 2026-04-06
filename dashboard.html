@@ -877,11 +877,18 @@ body {
   "use strict";
 
   // ── CONFIGURATION ──────────────────────────────────
+  // When served by the work-server at /telemetry/, use relative URLs and
+  // cookie auth (ws_key cookie set by the server). When opened standalone,
+  // require ?api=...&key=... query params.
   var params   = new URLSearchParams(window.location.search);
-  var API_BASE = params.get("api");
-  var API_KEY  = params.get("key");
+  var embedded = /\/telemetry\/?$/.test(window.location.pathname);
+  var API_BASE = embedded
+    ? window.location.origin
+    : params.get("api");
+  var API_KEY  = embedded ? null : params.get("key");
+  var USE_COOKIE_AUTH = embedded;
 
-  if (!API_BASE || !API_KEY) {
+  if (!API_BASE && !embedded) {
     document.getElementById("config-screen").style.display = "flex";
     document.getElementById("cfg-btn").addEventListener("click", connect);
     document.getElementById("cfg-key").addEventListener("keydown", function (e) {
@@ -945,9 +952,10 @@ body {
 
   // ── FETCH ──────────────────────────────────────────
   function refresh() {
-    fetch(API_BASE + "/telemetry/status", {
-      headers: { Authorization: "Bearer " + API_KEY }
-    })
+    fetch(API_BASE + "/telemetry/status", USE_COOKIE_AUTH
+      ? { credentials: "same-origin" }
+      : { headers: { Authorization: "Bearer " + API_KEY } }
+    )
     .then(function (res) {
       if (res.status === 503) {
         setConnStatus("stale", "Telemetry not initialized");
