@@ -941,6 +941,7 @@ body {
   // ── POLLING STATE ──────────────────────────────────
   var REFRESH_MS     = 10000;
   var lastSuccess    = null;
+  var consecutiveFails = 0;
   var isUserScrolled = false;
   var lastAgents     = [];
 
@@ -967,6 +968,7 @@ body {
     .then(function (data) {
       if (!data) return;
       lastSuccess = Date.now();
+      consecutiveFails = 0;
       setConnStatus("connected", "Live");
       lastAgents = data.agents || [];
       lastEvents = data.recent_events || [];
@@ -977,10 +979,16 @@ body {
       renderEvents(lastEvents);
     })
     .catch(function (err) {
-      var msg = (err.message || "").indexOf("fetch") !== -1
-        ? "Cannot reach API — check URL and network"
-        : "Connection lost";
-      setConnStatus("error", msg);
+      consecutiveFails++;
+      // First failure: show stale (transient). Escalate to error after 3 consecutive failures.
+      if (consecutiveFails < 3) {
+        setConnStatus("stale", "Retrying\u2026");
+      } else {
+        var msg = (err.message || "").indexOf("fetch") !== -1
+          ? "Cannot reach API — check URL and network"
+          : "Connection lost";
+        setConnStatus("error", msg);
+      }
       console.error("Poll failed:", err);
     });
   }
@@ -995,7 +1003,7 @@ body {
 
     if (ago < 15)       setConnStatus("connected", "Live");
     else if (ago < 60)  setConnStatus("stale",     "Last update: " + ago + "s ago");
-    else                setConnStatus("error",      "Connection lost (" + ago + "s ago)");
+    else                setConnStatus("stale",      "Last update: " + ago + "s ago");
   }
 
   function setConnStatus(state, text) {
