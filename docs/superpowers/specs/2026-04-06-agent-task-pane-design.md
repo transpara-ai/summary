@@ -6,21 +6,44 @@ The dashboard has no task visibility. 24 tasks exist in the work-server but oper
 
 ## Solution
 
-A slide-in right panel triggered by clicking an agent card. Shows only tasks assigned to the clicked agent. The rest of the dashboard shifts left to accommodate.
+A slide-in right panel triggered by clicking an agent card header. Shows only tasks assigned to the clicked agent. The rest of the dashboard shifts left to accommodate.
 
 ## Interaction
 
 1. **No card selected (default):** Dashboard renders full-width, no pane visible.
-2. **Click agent card:** Pane slides in from the right (~380px wide). Dashboard content gets `margin-right: 380px` with a CSS transition. Clicked card gets an accent border highlight.
-3. **Click same card or X button:** Pane closes, dashboard returns to full width.
-4. **Click different card:** Pane content switches to the new agent's tasks (no close/reopen animation). Previous card loses highlight, new card gains it.
+2. **Click agent card header:** Pane slides in from the right (~380px wide). Dashboard content shrinks via right padding. Clicked card gets a `var(--blue)` border highlight.
+3. **Click same card header or X button:** Pane closes, dashboard returns to full width.
+4. **Click different card header:** Pane content switches to the new agent's tasks (no close/reopen animation). Previous card loses highlight, new card gains it.
+5. **Card body click:** Existing expand/collapse behavior is preserved. Only the `.agent-card-head` element triggers the task pane — not the card body.
+6. **Missing actor_id:** If an agent has no `actor_id`, the card header click is a no-op (no pane opens).
 
 ## Data Source
 
 - **Endpoint:** `GET /tasks?assignee={actor_id}` on the work-server.
-- **Auth:** Cookie auth (`credentials: "same-origin"`) when embedded, Bearer token when standalone — same pattern as the status poll.
-- **Fetch timing:** On card click only. No auto-refresh or polling. Re-clicking the active card re-fetches.
+- **Auth:** Uses the same conditional as status polling: when `USE_COOKIE_AUTH` is true (embedded mode), send `{ credentials: "same-origin" }`. Otherwise send `{ headers: { Authorization: "Bearer " + API_KEY } }`.
+- **Fetch timing:** On card header click only. No auto-refresh or polling. Re-clicking the active card re-fetches.
 - **AbortController:** Cancel any in-flight task fetch when a new card is clicked (same pattern as status polling).
+
+## Task API Response Shape
+
+```json
+{
+  "tasks": [
+    {
+      "id": "019d63ca-59c2-...",
+      "title": "Scrape loop and main wiring",
+      "description": "Implement the main scrape loop...",
+      "status": "assigned",
+      "priority": "high",
+      "assignee": "actor_13c4fb4af6dc7d3def47139827601e53",
+      "created_by": "actor_0be01847499b9ba7ff5a27524a2eab36",
+      "blocked": false
+    }
+  ]
+}
+```
+
+Fields used by the pane: `title`, `status`, `priority`, `description`.
 
 ## Pane Layout
 
@@ -54,9 +77,9 @@ A slide-in right panel triggered by clicking an agent card. Shows only tasks ass
 
 - Pane: `position: fixed; right: 0; top: 0; bottom: 0; width: 380px; background: var(--bg); border-left: 1px solid var(--border); z-index: 10; overflow-y: auto; transform: translateX(100%); transition: transform 0.2s ease;`
 - Pane open: `transform: translateX(0);`
-- Dashboard shift: `#dashboard { transition: margin-right 0.2s ease; }` — set `margin-right: 380px` via JS when pane is open.
-- Selected card: `border-color: var(--accent);` (reuse existing accent color).
-- Responsive: At viewport widths below 900px, pane overlays instead of shifting (no margin-right change, pane gets `box-shadow` for depth).
+- Dashboard shift: `#dashboard { transition: padding-right 0.2s ease; }` — set `padding-right: 390px` via JS when pane is open. This works with the existing flex column layout by shrinking the content area rather than offsetting it.
+- Selected card: `border-color: var(--blue);`
+- Responsive: On narrow viewports, pane overlays the content with `box-shadow` instead of shifting. Use `@media (max-width: 768px)` to match the existing responsive breakpoint at line 769.
 
 ## Status Badges
 
@@ -82,11 +105,12 @@ A slide-in right panel triggered by clicking an agent card. Shows only tasks ass
 - Reuse existing `el()` helper for DOM construction.
 - Reuse existing CSS variables for colors/spacing.
 - Add pane HTML structure as a sibling to `#dashboard`, not inside it.
-- Task fetch uses the same auth pattern (cookie vs Bearer) as status polling.
+- Click target is `.agent-card-head` (not the whole card) to avoid conflict with the existing card expand/collapse click handler on the card body.
+- Task fetch uses the same auth conditional (`USE_COOKIE_AUTH`) as status polling.
 
 ## Files Modified
 
-- `dashboard.html` — CSS additions (~50 lines), HTML pane container, JS click handlers + fetch + render (~100 lines).
+- `dashboard.html` — CSS additions (~60 lines), HTML pane container, JS click handlers + fetch + render (~180 lines).
 
 ## Out of Scope
 
