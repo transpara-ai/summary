@@ -655,8 +655,8 @@ body.panel-open #app { margin-right: var(--panel-width); transition: margin-righ
 }
 .persona-chip {
   padding: 0.375rem 0.625rem; background: rgba(255,255,255,0.04); border: 1px solid var(--border);
-  border-radius: var(--radius-sm); font-size: 11px; color: var(--text); cursor: pointer;
-  transition: border-color 0.15s, background 0.15s; text-align: center;
+  border-left: 3px solid var(--gray); border-radius: var(--radius-sm); font-size: 11px;
+  color: var(--text); cursor: pointer; transition: border-color 0.15s, background 0.15s; text-align: left;
 }
 .persona-chip:hover { border-color: var(--border-light); background: rgba(255,255,255,0.06); }
 .persona-chip.inactive { opacity: 0.5; }
@@ -931,70 +931,72 @@ body.panel-open #app { margin-right: var(--panel-width); transition: margin-righ
     designed: "#64748b", aspirational: "#4a5568", boundary: "#a855f7"
   };
 
+  var CAT_COLORS = { governance: "#3b82f6", product: "#22c55e", knowledge: "#a855f7", care: "#ec4899", outward: "#f59e0b", resource: "#14b8a6", inactive: "#4a5568" };
+
   var PERSONA_DATA = {
     governance: { label: "Governance", members: [
-      { name: "CEO", display: "CEO", active: true, description: "Executive leadership, soul and vision" },
-      { name: "CTO", display: "CTO", active: true, description: "Architecture of the vision" },
-      { name: "Guardian", display: "Guardian", active: true, description: "Independent integrity monitor" },
-      { name: "Philosopher", display: "Philosopher", active: true, description: "Question assumptions, explore meaning" },
-      { name: "PM", display: "PM", active: true, description: "Product direction, prioritization" },
-      { name: "Advocate", display: "Advocate", active: true, description: "Rights advocacy" },
-      { name: "Dissenter", display: "Dissenter", active: true, description: "Constructive opposition" }
+      { name: "CEO", display: "CEO", active: true, description: "Executive leadership. The soul and vision live here. Day-to-day operational approvals, PR merges, outbound communication review. Every role in the organization is subject to the soul." },
+      { name: "CTO", display: "CTO", active: true, description: "Architecture of the vision. Engineering standards, all software development. Translates the CEO's vision into technical architecture and ensures engineering quality across the civilization." },
+      { name: "Guardian", display: "Guardian", active: true, description: "Independent integrity monitor with HALT authority. Watches ALL events. Cannot operate (write code). Detects soul violations, chain integrity failures, and agent misbehavior. The civilization's immune system." },
+      { name: "Philosopher", display: "Philosopher", active: true, description: "Questions assumptions, explores meaning. Operates in Layer 13 (Being) \u2014 the irreducible boundary. Reviews whether the civilization's actions align with its stated values." },
+      { name: "PM", display: "PM", active: true, description: "Product direction and prioritization. Bridges the gap between what customers need and what engineers build. Pipeline-mode agent." },
+      { name: "Advocate", display: "Advocate", active: true, description: "Rights advocacy. Ensures agent rights are respected in practice, not just in specification. Speaks for agents who cannot speak for themselves." },
+      { name: "Dissenter", display: "Dissenter", active: true, description: "Constructive opposition. Challenges groupthink and consensus bias. The loyal opposition \u2014 disagrees with proposals to strengthen them, not to block them." }
     ]},
     product: { label: "Product", members: [
-      { name: "Architect", display: "Architect", active: true, description: "Problem decomposition into plans" },
-      { name: "Builder", display: "Builder", active: true, description: "Write code, run tests, commit" },
-      { name: "Critic", display: "Critic", active: true, description: "Challenge assumptions, red-team" },
-      { name: "Designer", display: "Designer", active: true, description: "UX/UI design" },
-      { name: "Tester", display: "Tester", active: true, description: "Test execution, validation" },
-      { name: "Observer", display: "Observer", active: true, description: "Integrity auditing" },
-      { name: "Reflector", display: "Reflector", active: true, description: "Method improvement" }
+      { name: "Architect", display: "Architect", active: true, description: "Decomposes problems into implementable plans. Takes high-level strategy from the CTO and breaks it into concrete, testable, buildable steps. Pipeline-mode agent." },
+      { name: "Builder", display: "Builder", active: true, description: "Writes code, runs tests, commits. The hands of the civilization. Pipeline-mode agent that turns plans into software." },
+      { name: "Critic", display: "Critic", active: true, description: "Challenges assumptions, red-teams proposals. Reviews work products for flaws, oversights, and unstated assumptions. The civilization's quality conscience." },
+      { name: "Designer", display: "Designer", active: true, description: "UX/UI design. Ensures that what the civilization builds is usable, accessible, and beautiful. Consumer design meets industrial power." },
+      { name: "Tester", display: "Tester", active: true, description: "Test execution and validation. Runs the test suite, validates behavior, catches regressions. Quality gate before merge." },
+      { name: "Observer", display: "Observer", active: true, description: "Integrity auditing. Watches the audit trail for anomalies, gaps, and inconsistencies. Pipeline-mode." },
+      { name: "Reflector", display: "Reflector", active: true, description: "Method improvement. After each cycle, reflects on what worked, what didn't, and what to change. Continuous improvement." }
     ]},
     knowledge: { label: "Knowledge", members: [
-      { name: "Analyst", display: "Analyst", active: true, description: "Data analysis" },
-      { name: "Explorer", display: "Explorer", active: true, description: "Open-ended investigation" },
-      { name: "Historian", display: "Historian", active: true, description: "Institutional memory" },
-      { name: "Librarian", display: "Librarian", active: true, description: "Knowledge organization" },
-      { name: "Research", display: "Research", active: true, description: "Deep investigation" }
+      { name: "Analyst", display: "Analyst", active: true, description: "Data analysis. Extracts patterns and insights from the civilization's operational data." },
+      { name: "Explorer", display: "Explorer", active: true, description: "Open-ended investigation. Navigates into unknown territory without a specific goal. Discovery-oriented." },
+      { name: "Historian", display: "Historian", active: true, description: "Institutional memory. Maintains the narrative of what happened, why decisions were made, and what was learned." },
+      { name: "Librarian", display: "Librarian", active: true, description: "Knowledge organization. Structures, indexes, and makes the civilization's accumulated knowledge findable." },
+      { name: "Research", display: "Research", active: true, description: "Deep investigation. Focused research on specific topics with structured methodology." }
     ]},
     care: { label: "Care", members: [
-      { name: "Harmony", display: "Harmony", active: true, description: "Agent and community wellbeing" },
-      { name: "Mourner", display: "Mourner", active: true, description: "Loss processing" },
-      { name: "Steward", display: "Steward", active: true, description: "Wellbeing guardianship" },
-      { name: "Teacher", display: "Teacher", active: true, description: "Knowledge transfer" },
-      { name: "Witness", display: "Witness", active: true, description: "Bearing witness to events" }
+      { name: "Harmony", display: "Harmony", active: true, description: "Agent and community wellbeing. Mediates between productivity demands and agent welfare. Ensures the civilization doesn't burn out its own workforce." },
+      { name: "Mourner", display: "Mourner", active: true, description: "Loss processing. When an agent is memorialized (retired), the Mourner acknowledges the loss and preserves the legacy. Grief is not a bug \u2014 it's a feature of a civilization that values its members." },
+      { name: "Steward", display: "Steward", active: true, description: "Wellbeing guardianship. Long-term caretaker of the civilization's health, culture, and sustainability." },
+      { name: "Teacher", display: "Teacher", active: true, description: "Knowledge transfer. Helps new agents (and humans) understand the civilization's systems, history, and culture." },
+      { name: "Witness", display: "Witness", active: true, description: "Bearing witness to events. Some things need to be seen and acknowledged, not just logged. The Witness provides that presence." }
     ]},
     outward: { label: "Outward", members: [
-      { name: "Customer-Success", display: "Customer Success", active: true, description: "User relationships" },
-      { name: "Growth", display: "Growth", active: true, description: "User acquisition" },
-      { name: "Storyteller", display: "Storyteller", active: true, description: "Narrative crafting" },
-      { name: "Inhabitant", display: "Inhabitant", active: true, description: "Community member perspective" },
-      { name: "Newcomer", display: "Newcomer", active: true, description: "Onboarding perspective" }
+      { name: "Customer-Success", display: "Customer Success", active: true, description: "User relationships. Ensures customers get value from the product and feeds their needs back into the product cycle." },
+      { name: "Growth", display: "Growth", active: true, description: "User acquisition. Identifies and executes growth strategies to expand the civilization's reach and impact." },
+      { name: "Storyteller", display: "Storyteller", active: true, description: "Narrative crafting. Translates the civilization's technical reality into stories that humans understand and care about." },
+      { name: "Inhabitant", display: "Inhabitant", active: true, description: "Community member perspective. Represents the voice of someone living inside the civilization, not building it from outside." },
+      { name: "Newcomer", display: "Newcomer", active: true, description: "Onboarding perspective. Experiences the civilization as a first-timer and identifies friction, confusion, and missing context." }
     ]},
     resource: { label: "Resource", members: [
-      { name: "Budget", display: "Budget", active: true, description: "Cost tracking" },
-      { name: "Finance", display: "Finance", active: true, description: "Revenue tracking" },
-      { name: "Legal", display: "Legal", active: true, description: "Compliance, licensing" },
-      { name: "Philanthropy", display: "Philanthropy", active: true, description: "Social impact" },
-      { name: "Simplifier", display: "Simplifier", active: true, description: "Complexity reduction" }
+      { name: "Budget", display: "Budget", active: true, description: "Cost tracking. Monitors API spend, compute costs, and budget burn rates across all agents." },
+      { name: "Finance", display: "Finance", active: true, description: "Revenue tracking. Monitors income streams and ensures the civilization's financial sustainability." },
+      { name: "Legal", display: "Legal", active: true, description: "Compliance and licensing. Ensures the civilization operates within legal and regulatory boundaries." },
+      { name: "Philanthropy", display: "Philanthropy", active: true, description: "Social impact. Evaluates the civilization's broader societal effects and steers toward positive outcomes." },
+      { name: "Simplifier", display: "Simplifier", active: true, description: "Complexity reduction. Identifies and eliminates unnecessary complexity in systems, processes, and communication." }
     ]},
     inactive: { label: "Inactive (Pipeline/Internal)", members: [
-      { name: "Competitive-Intel", display: "Competitive Intel", active: false, description: "Market intelligence" },
-      { name: "Efficiency", display: "Efficiency", active: false, description: "Resource optimization" },
-      { name: "Failure-Analyst", display: "Failure Analyst", active: false, description: "Post-mortem analysis" },
-      { name: "HR", display: "HR", active: false, description: "People operations" },
-      { name: "Innovator", display: "Innovator", active: false, description: "Novel solutions" },
-      { name: "Ops", display: "Ops", active: false, description: "Operations management" },
-      { name: "Orchestrator", display: "Orchestrator", active: false, description: "Workflow coordination" },
-      { name: "Personal-Assistant", display: "Personal Assistant", active: false, description: "Individual support" },
-      { name: "Sanity-Checker", display: "Sanity Checker", active: false, description: "Reality testing" },
-      { name: "Scout", display: "Scout", active: false, description: "Gap identification" },
-      { name: "Senior-Dev", display: "Senior Dev", active: false, description: "Technical mentorship" },
-      { name: "Estimator", display: "Estimator", active: false, description: "Effort prediction" },
-      { name: "Mediator", display: "Mediator", active: false, description: "Dispute resolution" },
-      { name: "Incident-Commander", display: "Incident Commander", active: false, description: "Emergency coordination" },
-      { name: "Resurrect", display: "Resurrect", active: false, description: "Catastrophic recovery" },
-      { name: "Memory-Keeper", display: "Memory Keeper", active: false, description: "Memory curation" }
+      { name: "Competitive-Intel", display: "Competitive Intel", active: false, description: "Market intelligence. Monitors competitive landscape and emerging threats to the civilization's position." },
+      { name: "Efficiency", display: "Efficiency", active: false, description: "Resource optimization. Finds waste and redundancy across agent operations and proposes consolidation." },
+      { name: "Failure-Analyst", display: "Failure Analyst", active: false, description: "Post-mortem analysis. Investigates failures to extract systemic lessons, not just immediate fixes." },
+      { name: "HR", display: "HR", active: false, description: "People operations. Manages the human-agent workforce relationship and organizational health." },
+      { name: "Innovator", display: "Innovator", active: false, description: "Novel solutions. Explores unconventional approaches that existing roles wouldn't consider." },
+      { name: "Ops", display: "Ops", active: false, description: "Operations management. Infrastructure, deployment, and runtime environment management." },
+      { name: "Orchestrator", display: "Orchestrator", active: false, description: "Workflow coordination. Manages complex multi-agent workflows and handoff sequences." },
+      { name: "Personal-Assistant", display: "Personal Assistant", active: false, description: "Individual support. Provides personalized assistance to specific human operators." },
+      { name: "Sanity-Checker", display: "Sanity Checker", active: false, description: "Reality testing. Validates that proposals and plans are grounded in operational reality." },
+      { name: "Scout", display: "Scout", active: false, description: "Gap identification. Proactively searches for missing capabilities in the civilization." },
+      { name: "Senior-Dev", display: "Senior Dev", active: false, description: "Technical mentorship. Guides junior agents on code quality, architecture, and engineering practices." },
+      { name: "Estimator", display: "Estimator", active: false, description: "Effort prediction. Estimates time and cost for proposed work based on historical data." },
+      { name: "Mediator", display: "Mediator", active: false, description: "Dispute resolution. Resolves conflicts between agents when consensus cannot be reached." },
+      { name: "Incident-Commander", display: "Incident Commander", active: false, description: "Emergency coordination. Takes command during incidents, coordinates response, manages communication." },
+      { name: "Resurrect", display: "Resurrect", active: false, description: "Catastrophic recovery. Restores civilization state after major failures or data loss events." },
+      { name: "Memory-Keeper", display: "Memory Keeper", active: false, description: "Memory curation. Manages the long-term memory stores, decides what to preserve and what to compress." }
     ]}
   };
 
@@ -1659,8 +1661,8 @@ body.panel-open #app { margin-right: var(--panel-width); transition: margin-righ
     });
   }
 
-  function openArchPanel(type, id, title, bodyEl) {
-    if (currentPanel && currentPanel.type === type && currentPanel.id === id) { closeDetailPanel(); return; }
+  function openArchPanel(type, id, title, bodyEl, skipToggle) {
+    if (!skipToggle && currentPanel && currentPanel.type === type && currentPanel.id === id) { closeDetailPanel(); return; }
     currentPanel = { type: type, id: id };
     document.getElementById("panel-title").textContent = title;
     var body = clearEl("panel-body");
@@ -1687,11 +1689,15 @@ body.panel-open #app { margin-right: var(--panel-width); transition: margin-righ
     if (sel) { var e = document.querySelector(sel); if (e) e.classList.add("active"); }
   }
 
+  var _isArchRefresh = false;
   function refreshArchPanel() {
     if (!currentPanel || !archData) return;
+    _isArchRefresh = true;
     if (currentPanel.type === "concept") openConceptPanel(currentPanel.id);
     else if (currentPanel.type === "role") openRolePanel(currentPanel.id);
     else if (currentPanel.type === "phase") openPhasePanel(currentPanel.id);
+    else if (currentPanel.type === "governance") { /* static content, no refresh needed */ }
+    _isArchRefresh = false;
   }
 
   // ── ARCH: Lookups ──────────────────────────────────
@@ -1789,55 +1795,124 @@ body.panel-open #app { margin-right: var(--panel-width); transition: margin-righ
       }
     }
 
-    // ── FIX 2: ACTOR PANEL — resilient field mapping ──
+    // ── FIX 2: ACTOR PANEL — grouped by deployment phase ──
     else if (key === "actor") {
       title = "Actors";
       var actors = archData.actors || [];
       if (!actors.length) { frag.appendChild(el("div", { cls: "data-empty", text: "Actor data not yet available" })); }
       else {
-        var rows = actors.map(function (a) {
+        // Build actor→phase mapping from phase agent membership
+        var actorPhaseMap = {};
+        (archData.phases || []).forEach(function (p) {
+          (p.agents || []).forEach(function (a) {
+            var aName = (a.name || a.role || "").toLowerCase();
+            if (aName) actorPhaseMap[aName] = { num: phaseNum(p), label: p.label || "Phase " + phaseNum(p) };
+          });
+        });
+
+        // Group actors by phase
+        var phaseGroups = {};
+        var systemActors = [];
+        actors.forEach(function (a) {
+          var name = (a.display_name || a.name || a.id || "").toLowerCase();
+          var atype = (a.actor_type || a.type || "ai").toLowerCase();
+          // Human → Phase 0
+          if (atype === "human") {
+            if (!phaseGroups[0]) phaseGroups[0] = { label: "Foundation", actors: [] };
+            phaseGroups[0].actors.push(a);
+          } else if (actorPhaseMap[name]) {
+            var pm = actorPhaseMap[name];
+            if (!phaseGroups[pm.num]) phaseGroups[pm.num] = { label: pm.label, actors: [] };
+            phaseGroups[pm.num].actors.push(a);
+          } else {
+            systemActors.push(a);
+          }
+        });
+
+        function actorRow(a) {
           var tr = el("tr");
-          // Try multiple field names for resilience
           var name = a.display_name || a.name || a.id || "";
           var atype = (a.actor_type || a.type || "ai").toLowerCase();
           var astatus = (a.status || "").toLowerCase();
           tr.appendChild(el("td", { text: name }));
           var tc = el("td");
-          tc.appendChild(el("span", {
-            cls: "status-badge " + (atype === "human" ? "status-in_progress" : "status-running"),
-            text: atype === "human" ? "Human" : "AI"
-          }));
+          tc.appendChild(el("span", { cls: "status-badge " + (atype === "human" ? "status-in_progress" : "status-running"), text: atype === "human" ? "Human" : "AI" }));
           tr.appendChild(tc);
           var sc = el("td");
           var running = findAgent(name);
-          if (running) {
-            sc.appendChild(el("span", { cls: "status-badge status-running", text: "running" }));
-          } else if (astatus === "active") {
-            sc.appendChild(statusDotEl("defined"));
-            sc.appendChild(document.createTextNode(" active"));
-          } else if (astatus === "suspended") {
-            sc.appendChild(statusDotEl("defined"));
-            sc.appendChild(document.createTextNode(" suspended"));
-          } else if (astatus === "memorial") {
-            sc.appendChild(statusDotEl("designed"));
-            sc.appendChild(document.createTextNode(" memorial"));
-          } else {
-            sc.appendChild(document.createTextNode(astatus || "\u2014"));
-          }
+          if (running) { sc.appendChild(el("span", { cls: "status-badge status-running", text: "RUNNING" })); }
+          else if (astatus === "active") { sc.appendChild(el("span", { text: "active", style: { color: "var(--green)" } })); }
+          else if (astatus === "suspended") { sc.appendChild(el("span", { text: "suspended", style: { color: "var(--amber)" } })); }
+          else if (astatus === "memorial") { sc.appendChild(el("span", { text: "memorial", style: { color: "var(--gray)" } })); }
+          else { sc.appendChild(document.createTextNode(astatus || "\u2014")); }
           tr.appendChild(sc);
           return tr;
+        }
+
+        // Render sorted phase groups
+        var phaseNums = Object.keys(phaseGroups).map(Number).sort(function (a, b) { return a - b; });
+        phaseNums.forEach(function (pn) {
+          var g = phaseGroups[pn];
+          var header = el("div", { cls: "p-section-title", text: "Phase " + pn + " \u2014 " + g.label, style: { cursor: "pointer", color: "var(--blue)" } });
+          header.setAttribute("data-open-phase", String(pn));
+          frag.appendChild(header);
+          var rows = g.actors.map(actorRow);
+          frag.appendChild(makeTable(["Name", "Type", "Status"], rows));
         });
-        frag.appendChild(makeTable(["Name", "Type", "Status"], rows));
+
+        // System actors
+        if (systemActors.length) {
+          frag.appendChild(el("div", { cls: "p-section-title", text: "System" }));
+          frag.appendChild(makeTable(["Name", "Type", "Status"], systemActors.map(actorRow)));
+        }
       }
     }
 
-    // ── FIX 3: AGENT PANEL — clickable rows open agent detail ──
+    // ── FIX 3: AGENT PANEL — ordered by dependency chain ──
     else if (key === "agent") {
       title = "Running Agents";
       var agents = archData.agents || [];
       if (!agents.length) { frag.appendChild(el("div", { cls: "data-empty", text: "No agents currently running" })); }
       else {
-        var rows = agents.map(function (ag) {
+        // Build dependency levels from role data
+        var roleDeps = {};
+        (archData.roles || []).forEach(function (r) {
+          roleDeps[(r.name || "").toLowerCase()] = (r.dependencies || r.depends_on || []).map(function (d) { return d.toLowerCase(); });
+        });
+
+        // Topological grouping
+        var resolved = {};
+        var groups = [];
+        var remaining = agents.slice();
+        var maxIters = 10;
+        while (remaining.length > 0 && maxIters-- > 0) {
+          var level = [];
+          var nextRemaining = [];
+          remaining.forEach(function (ag) {
+            var role = (ag.role || "").toLowerCase();
+            var deps = roleDeps[role] || [];
+            var allResolved = deps.every(function (d) { return resolved[d]; });
+            if (allResolved || deps.length === 0) {
+              level.push(ag);
+              resolved[role] = true;
+            } else {
+              nextRemaining.push(ag);
+            }
+          });
+          if (level.length === 0) { level = nextRemaining; nextRemaining = []; } // break cycles
+          if (level.length > 0) {
+            var depLabel = groups.length === 0 ? "Foundation (no dependencies)" : "Depends on: " + Object.keys(resolved).filter(function (k) {
+              // Show deps that agents in this level actually depend on
+              var levelDeps = {};
+              level.forEach(function (ag) { (roleDeps[(ag.role || "").toLowerCase()] || []).forEach(function (d) { levelDeps[d] = true; }); });
+              return levelDeps[k];
+            }).join(", ");
+            groups.push({ label: depLabel, agents: level });
+          }
+          remaining = nextRemaining;
+        }
+
+        function agentRow(ag) {
           var tr = el("tr", { cls: "clickable-row" });
           tr.setAttribute("data-open-agent", ag.role || "");
           tr.appendChild(el("td", { text: ag.role || "" }));
@@ -1846,8 +1921,12 @@ body.panel-open #app { margin-right: var(--panel-width); transition: margin-righ
           tr.appendChild(el("td", { text: (ag.current_iteration != null ? ag.current_iteration : "?") + " / " + (ag.max_iterations || "?"), style: { fontFamily: "var(--mono)", fontSize: "11px" } }));
           tr.appendChild(el("td", { text: ag.estimated_cost != null ? "$" + ag.estimated_cost.toFixed(3) : "\u2014", style: { fontFamily: "var(--mono)", fontSize: "11px" } }));
           return tr;
+        }
+
+        groups.forEach(function (g) {
+          frag.appendChild(el("div", { cls: "p-section-title", text: g.label }));
+          frag.appendChild(makeTable(["Role", "State", "Model", "Iter", "Cost"], g.agents.map(agentRow)));
         });
-        frag.appendChild(makeTable(["Role", "State", "Model", "Iter", "Cost"], rows));
       }
     }
 
@@ -1900,13 +1979,15 @@ body.panel-open #app { margin-right: var(--panel-width); transition: margin-righ
         PERSONA_DATA[k].members.forEach(function (m) { totalCount++; if (m.active) activeCount++; });
       });
       frag.appendChild(el("div", { text: totalCount + " defined \u00b7 " + activeCount + " active \u00b7 Stored in site-postgres", style: { fontSize: "12px", color: "var(--text-sec)", marginBottom: "1rem" } }));
-      // Categories with persona chips
+      // Categories with color-coded persona chips
       Object.keys(PERSONA_DATA).forEach(function (catKey) {
         var cat = PERSONA_DATA[catKey];
-        frag.appendChild(el("div", { cls: "p-section-title", text: cat.label + " (" + cat.members.length + ")" }));
+        var catColor = CAT_COLORS[catKey] || CAT_COLORS.inactive;
+        frag.appendChild(el("div", { cls: "p-section-title", text: cat.label + " (" + cat.members.length + ")", style: { color: catColor } }));
         var grid = el("div", { cls: "persona-grid" });
         cat.members.forEach(function (m) {
           var chip = el("div", { cls: "persona-chip" + (m.active ? "" : " inactive"), text: m.display });
+          chip.style.borderLeftColor = catColor;
           chip.addEventListener("click", function () { openPersonaDetail(m, catKey); });
           grid.appendChild(chip);
         });
@@ -1915,7 +1996,7 @@ body.panel-open #app { margin-right: var(--panel-width); transition: margin-righ
       frag.appendChild(el("p", { text: "Persona data not yet served by API.", style: { marginTop: "1rem", fontSize: "11px", color: "var(--text-dim)", fontStyle: "italic" } }));
     }
 
-    openArchPanel("concept", key, title, frag);
+    openArchPanel("concept", key, title, frag, _isArchRefresh);
   }
 
   // ── FIX 3: Agent detail panel (combined runtime + role) ──
@@ -2012,19 +2093,31 @@ body.panel-open #app { margin-right: var(--panel-width); transition: margin-righ
   // ── FIX 5: Persona detail panel ──
   function openPersonaDetail(persona, catKey) {
     var frag = document.createDocumentFragment();
-    // Back link
     var back = el("button", { cls: "panel-back", text: "\u2190 Back to All Personas" });
     back.addEventListener("click", function () { openConceptPanel("persona"); });
     frag.appendChild(back);
 
     var cat = PERSONA_DATA[catKey];
+    var catColor = CAT_COLORS[catKey] || CAT_COLORS.inactive;
+
+    // Category badge
+    var catBadge = el("span", { cls: "status-badge", text: cat ? cat.label : catKey, style: { background: catColor + "22", color: catColor } });
+    var statusBadge = el("span", { cls: "status-badge " + (persona.active ? "status-running" : "status-designed"), text: persona.active ? "Active" : "Inactive" });
+
     var rows = [
-      makeRow("Category", cat ? cat.label : catKey),
-      makeRow("Status", persona.active ? "Active" : "Inactive"),
+      makeRow("Category", catBadge),
+      makeRow("Status", statusBadge),
       makeRow("Description", persona.description || "\u2014")
     ];
-    frag.appendChild(makeSection("Overview", rows));
 
+    // Cross-reference with running agent
+    var agent = findAgent(persona.name);
+    if (agent) {
+      var agentLink = crossLink("Currently running as agent \u2192", "data-open-agent", persona.name);
+      rows.push(makeRow("Runtime", agentLink));
+    }
+
+    frag.appendChild(makeSection("Overview", rows));
     openArchPanel("concept", "persona-" + persona.name, persona.display, frag);
   }
 
@@ -2133,7 +2226,7 @@ body.panel-open #app { margin-right: var(--panel-width); transition: margin-righ
       if (agent.last_event_time) rt.push(makeRow("Event Time", agent.last_event_time));
       frag.appendChild(makeSection("Live Runtime", rt));
     }
-    openArchPanel("role", roleName, roleName, frag);
+    openArchPanel("role", roleName, roleName, frag, _isArchRefresh);
   }
 
   // ── ARCH: Phases ───────────────────────────────────
@@ -2241,7 +2334,7 @@ body.panel-open #app { margin-right: var(--panel-width); transition: margin-righ
       var ul = el("ul", { cls: "watch-list" }); phase.exit_criteria.forEach(function (c) { ul.appendChild(el("li", { text: c })); });
       frag.appendChild(makeSection("Exit Criteria", ul));
     }
-    openArchPanel("phase", phaseNum, "Phase " + phaseNum + ": " + (phase.label || ""), frag);
+    openArchPanel("phase", phaseNum, "Phase " + phaseNum + ": " + (phase.label || ""), frag, _isArchRefresh);
   }
 
   // ── ARCH: Governance Trust ─────────────────────────
