@@ -3,13 +3,14 @@
 <head>
 <meta charset="UTF-8">
 <meta name="viewport" content="width=device-width, initial-scale=1.0">
-<title>Transpara-AI — Mission Control</title>
+<title>Transpara-AI — Telemetry</title>
 <style>
 * { box-sizing: border-box; margin: 0; padding: 0; }
 
 :root {
   --bg: #0f1117;
-  --bg-card: #111827;
+  --bg-card: #1a1f2e;
+  --bg-card-alt: #111827;
   --border: #1e293b;
   --border-light: #2d3748;
   --text: #e2e8f0;
@@ -27,9 +28,13 @@
   --gray: #64748b;
   --purple: #a855f7;
   --font: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, sans-serif;
+  --font-display: ui-monospace, "Cascadia Code", "Fira Code", Consolas, monospace;
   --mono: ui-monospace, "Cascadia Code", "Fira Code", Consolas, monospace;
   --radius: 8px;
   --radius-sm: 4px;
+  --radius-lg: 12px;
+  --panel-width: 400px;
+  --transition: 300ms cubic-bezier(0.4, 0, 0.2, 1);
 }
 
 body {
@@ -39,866 +44,587 @@ body {
   min-height: 100vh;
   font-size: 14px;
   line-height: 1.5;
+  overflow-x: hidden;
 }
 
 /* ── CONFIG SCREEN ──────────────────────────────── */
 #config-screen {
-  display: flex;
-  flex-direction: column;
-  align-items: center;
-  justify-content: center;
-  min-height: 100vh;
-  padding: 2rem;
+  display: flex; flex-direction: column; align-items: center; justify-content: center;
+  min-height: 100vh; padding: 2rem;
+  background: radial-gradient(ellipse at 50% 30%, rgba(59,130,246,0.06) 0%, transparent 70%);
 }
-
 .config-card {
-  background: var(--bg-card);
-  border: 1px solid var(--border);
-  border-radius: 12px;
-  padding: 2rem;
-  width: 100%;
-  max-width: 440px;
+  background: var(--bg-card); border: 1px solid var(--border); border-radius: var(--radius-lg);
+  padding: 2.5rem; width: 100%; max-width: 440px; box-shadow: 0 24px 48px rgba(0,0,0,0.4);
 }
-
 .config-card h1 {
-  font-size: 18px;
-  font-weight: 600;
-  color: var(--text-head);
-  margin-bottom: 0.25rem;
+  font-family: var(--font-display); font-size: 18px; font-weight: 700;
+  color: var(--text-head); margin-bottom: 0.25rem; letter-spacing: -0.02em;
 }
-
-.config-subtitle {
-  font-size: 12px;
-  color: var(--text-sec);
-  margin-bottom: 1.5rem;
-}
-
+.config-subtitle { font-size: 12px; color: var(--text-sec); margin-bottom: 1.5rem; }
 .config-field { margin-bottom: 1rem; }
-
 .config-field label {
-  display: block;
-  font-size: 12px;
-  font-weight: 500;
-  color: var(--text-sec);
-  margin-bottom: 0.375rem;
-  text-transform: uppercase;
-  letter-spacing: 0.05em;
+  display: block; font-size: 11px; font-weight: 600; color: var(--text-sec);
+  margin-bottom: 0.375rem; text-transform: uppercase; letter-spacing: 0.06em;
 }
-
 .config-field input {
-  width: 100%;
-  background: var(--bg);
-  border: 1px solid var(--border-light);
-  border-radius: var(--radius-sm);
-  padding: 0.5rem 0.75rem;
-  color: var(--text);
-  font-family: var(--mono);
-  font-size: 13px;
-  outline: none;
-  transition: border-color 0.15s;
+  width: 100%; background: var(--bg); border: 1px solid var(--border);
+  border-radius: var(--radius-sm); padding: 0.5rem 0.75rem; color: var(--text);
+  font-family: var(--mono); font-size: 13px; outline: none; transition: border-color 0.15s;
 }
-
 .config-field input:focus { border-color: var(--blue); }
-
 .btn-connect {
-  width: 100%;
-  margin-top: 0.5rem;
-  background: var(--blue);
-  color: #fff;
-  border: none;
-  border-radius: var(--radius-sm);
-  padding: 0.625rem 1rem;
-  font-size: 14px;
-  font-weight: 500;
-  cursor: pointer;
-  transition: opacity 0.15s;
+  width: 100%; margin-top: 0.5rem; background: var(--blue); color: #fff; border: none;
+  border-radius: var(--radius-sm); padding: 0.625rem 1rem; font-size: 14px; font-weight: 600;
+  cursor: pointer; transition: opacity 0.15s; font-family: var(--font);
 }
-
 .btn-connect:hover { opacity: 0.9; }
-
-.config-hint {
-  margin-top: 1rem;
-  font-size: 11px;
-  color: var(--text-dim);
-  line-height: 1.6;
-}
-
+.config-hint { margin-top: 1rem; font-size: 11px; color: var(--text-dim); line-height: 1.6; }
 .config-hint code {
-  font-family: var(--mono);
-  background: rgba(255,255,255,0.06);
-  padding: 1px 4px;
-  border-radius: 3px;
+  font-family: var(--mono); background: rgba(255,255,255,0.06); padding: 1px 4px; border-radius: 3px;
 }
 
-/* ── DASHBOARD ──────────────────────────────────── */
-#dashboard {
-  display: flex;
-  flex-direction: column;
-  min-height: 100vh;
-}
+/* ── APP LAYOUT ─────────────────────────────────── */
+#app { display: flex; flex-direction: column; min-height: 100vh; }
 
 /* ── TOP BAR ────────────────────────────────────── */
 #topbar {
-  position: sticky;
-  top: 0;
-  z-index: 100;
-  background: rgba(15,17,23,0.95);
-  backdrop-filter: blur(8px);
+  position: sticky; top: 0; z-index: 100;
+  background: rgba(15,17,23,0.92); backdrop-filter: blur(12px);
   border-bottom: 1px solid var(--border);
-  padding: 0.625rem 1.25rem;
-  display: flex;
-  align-items: center;
-  gap: 1rem;
-  flex-wrap: wrap;
+  padding: 0.625rem 1.25rem; display: flex; align-items: center; gap: 1rem; flex-wrap: wrap;
 }
-
-.topbar-title {
-  font-size: 13px;
-  font-weight: 600;
-  color: var(--text-head);
-  white-space: nowrap;
+.topbar-brand {
+  font-family: var(--font-display); font-size: 14px; font-weight: 700;
+  color: var(--text-head); letter-spacing: -0.02em;
 }
-
-.topbar-sub {
-  font-size: 13px;
-  font-weight: 400;
-  color: var(--text-sec);
-  white-space: nowrap;
-}
-
 .topbar-sep { color: var(--border-light); }
 
-.conn-dot {
-  width: 8px;
-  height: 8px;
-  border-radius: 50%;
-  flex-shrink: 0;
-  background: var(--gray);
+/* ── VIEW SWITCHER ──────────────────────────────── */
+.view-switcher {
+  display: flex; gap: 0; background: rgba(255,255,255,0.05);
+  border-radius: var(--radius-sm); padding: 2px;
 }
-
-.conn-dot.connected {
-  background: var(--green);
-  animation: pulse-green 2s ease-in-out infinite;
+.view-btn {
+  background: none; border: none; padding: 4px 14px; font-size: 12px; font-weight: 600;
+  color: var(--text-sec); cursor: pointer; border-radius: 3px; font-family: var(--font);
+  transition: all 0.15s; white-space: nowrap;
 }
-
-.conn-dot.stale { background: var(--amber); }
-.conn-dot.error { background: var(--red); }
-
-@keyframes pulse-green {
-  0%, 100% { box-shadow: 0 0 0 0 rgba(34,197,94,0.5); }
-  50%       { box-shadow: 0 0 0 5px rgba(34,197,94,0); }
-}
+.view-btn:hover { color: var(--text); }
+.view-btn.active { background: rgba(255,255,255,0.1); color: var(--text-head); }
 
 .conn-status {
-  font-size: 12px;
-  color: var(--text-sec);
-  display: flex;
-  align-items: center;
-  gap: 0.4rem;
-  white-space: nowrap;
+  font-size: 12px; color: var(--text-sec); display: flex; align-items: center;
+  gap: 0.4rem; white-space: nowrap;
 }
-
 .conn-status.error { color: var(--red); }
 .conn-status.stale { color: var(--amber); }
-
-.topbar-api {
-  font-family: var(--mono);
-  font-size: 11px;
-  color: var(--text-dim);
-  white-space: nowrap;
+.conn-dot {
+  width: 8px; height: 8px; border-radius: 50%; flex-shrink: 0; background: var(--gray);
 }
-
-.topbar-time {
-  font-family: var(--mono);
-  font-size: 11px;
-  color: var(--text-dim);
-  margin-left: auto;
-  white-space: nowrap;
+.conn-dot.connected { background: var(--green); animation: pulse-green 2s ease-in-out infinite; }
+.conn-dot.stale { background: var(--amber); }
+.conn-dot.error { background: var(--red); }
+@keyframes pulse-green {
+  0%, 100% { box-shadow: 0 0 0 0 rgba(34,197,94,0.5); }
+  50%      { box-shadow: 0 0 0 5px rgba(34,197,94,0); }
 }
+.topbar-api { font-family: var(--mono); font-size: 11px; color: var(--text-dim); white-space: nowrap; }
+.topbar-time { font-family: var(--mono); font-size: 11px; color: var(--text-dim); margin-left: auto; white-space: nowrap; }
 
-/* ── MAIN ───────────────────────────────────────── */
-.main {
-  padding: 1.25rem;
-  display: flex;
-  flex-direction: column;
-  gap: 1.25rem;
-  max-width: 1600px;
-  margin: 0 auto;
-  width: 100%;
+/* ── VIEWS ──────────────────────────────────────── */
+.view { display: none; flex-direction: column; flex: 1; }
+.view.active { display: flex; }
+
+/* ═══════════════════════════════════════════════════
+   OPS VIEW — Mission Control
+   ═══════════════════════════════════════════════════ */
+.ops-main {
+  padding: 1.25rem; display: flex; flex-direction: column; gap: 1.25rem;
+  max-width: 1600px; margin: 0 auto; width: 100%;
+  transition: padding-right 0.2s ease;
 }
+.ops-main.pane-open { padding-right: 390px; }
 
-/* ── CHAIN ALERT ────────────────────────────────── */
 .chain-alert {
-  background: var(--red-dim);
-  border: 1px solid var(--red);
-  border-radius: var(--radius);
-  padding: 0.75rem 1rem;
-  color: var(--red);
-  font-weight: 600;
-  font-size: 13px;
-  display: none;
+  background: var(--red-dim); border: 1px solid var(--red); border-radius: var(--radius);
+  padding: 0.75rem 1rem; color: var(--red); font-weight: 600; font-size: 13px; display: none;
 }
+.chain-alert.chain-alert-unknown { background: var(--amber-dim); border-color: var(--amber); color: var(--amber); }
 
-.chain-alert.chain-alert-unknown {
-  background: var(--amber-dim);
-  border-color: var(--amber);
-  color: var(--amber);
-}
-
-/* ── SECTION ────────────────────────────────────── */
 .section {
-  background: var(--bg-card);
-  border: 1px solid var(--border);
-  border-radius: var(--radius);
-  overflow: hidden;
+  background: var(--bg-card-alt); border: 1px solid var(--border); border-radius: var(--radius); overflow: hidden;
 }
-
 .section-head {
-  padding: 0.625rem 1rem;
-  border-bottom: 1px solid var(--border);
-  display: flex;
-  align-items: center;
-  gap: 0.5rem;
+  padding: 0.625rem 1rem; border-bottom: 1px solid var(--border);
+  display: flex; align-items: center; gap: 0.5rem;
 }
-
-.section-label {
-  font-size: 11px;
-  font-weight: 600;
-  text-transform: uppercase;
-  letter-spacing: 0.08em;
-  color: var(--text-sec);
+.ops-section-label {
+  font-size: 11px; font-weight: 600; text-transform: uppercase;
+  letter-spacing: 0.08em; color: var(--text-sec);
 }
-
-.section-meta {
-  font-size: 11px;
-  color: var(--text-dim);
-  margin-left: auto;
-}
-
+.section-meta { font-size: 11px; color: var(--text-dim); margin-left: auto; }
 .section-body { padding: 1rem; }
 
-/* ── PHASE TIMELINE ─────────────────────────────── */
-.phase-timeline {
-  display: flex;
-  align-items: flex-start;
-  gap: 0;
-  overflow-x: auto;
-  padding: 0.5rem 0 0.75rem;
+/* Phase timeline (ops) */
+.ops-phase-timeline {
+  display: flex; align-items: flex-start; gap: 0; overflow-x: auto; padding: 0.5rem 0 0.75rem;
 }
-
-.phase-item {
-  display: flex;
-  flex-direction: column;
-  align-items: center;
-  flex: 1;
-  min-width: 80px;
-  position: relative;
+.ops-phase-item {
+  display: flex; flex-direction: column; align-items: center; flex: 1; min-width: 80px; position: relative;
 }
-
-.phase-item:not(:last-child)::after {
-  content: '';
-  position: absolute;
-  top: 8px;
-  left: calc(50% + 10px);
-  right: calc(-50% + 10px);
-  height: 2px;
-  background: var(--border-light);
-  z-index: 0;
+.ops-phase-item:not(:last-child)::after {
+  content: ''; position: absolute; top: 8px; left: calc(50% + 10px); right: calc(-50% + 10px);
+  height: 2px; background: var(--border-light); z-index: 0;
 }
-
-.phase-item.complete:not(:last-child)::after { background: var(--green-dim); }
-.phase-item.in_progress:not(:last-child)::after { background: var(--blue-dim); }
-
-.phase-dot {
-  width: 18px;
-  height: 18px;
-  border-radius: 50%;
-  border: 2px solid var(--border-light);
-  background: var(--bg);
-  z-index: 1;
-  position: relative;
-  flex-shrink: 0;
-  display: flex;
-  align-items: center;
-  justify-content: center;
+.ops-phase-item.complete:not(:last-child)::after { background: var(--green-dim); }
+.ops-phase-item.in_progress:not(:last-child)::after { background: var(--blue-dim); }
+.ops-phase-dot {
+  width: 18px; height: 18px; border-radius: 50%; border: 2px solid var(--border-light);
+  background: var(--bg); z-index: 1; position: relative; flex-shrink: 0;
+  display: flex; align-items: center; justify-content: center;
 }
-
-.phase-item.complete .phase-dot   { background: var(--green); border-color: var(--green); }
-.phase-item.in_progress .phase-dot {
-  background: var(--blue); border-color: var(--blue);
-  animation: pulse-blue 2s ease-in-out infinite;
+.ops-phase-item.complete .ops-phase-dot { background: var(--green); border-color: var(--green); }
+.ops-phase-item.in_progress .ops-phase-dot {
+  background: var(--blue); border-color: var(--blue); animation: pulse-blue 2s ease-in-out infinite;
 }
-.phase-item.blocked .phase-dot { opacity: 0.4; }
-
+.ops-phase-item.blocked .ops-phase-dot { opacity: 0.4; }
 @keyframes pulse-blue {
   0%, 100% { box-shadow: 0 0 0 0 rgba(59,130,246,0.5); }
-  50%       { box-shadow: 0 0 0 5px rgba(59,130,246,0); }
+  50%      { box-shadow: 0 0 0 5px rgba(59,130,246,0); }
 }
-
-.phase-num {
-  font-size: 10px;
-  font-weight: 700;
-  color: #fff;
-  line-height: 1;
+.ops-phase-num { font-size: 10px; font-weight: 700; color: #fff; line-height: 1; }
+.ops-phase-info { text-align: center; margin-top: 0.5rem; }
+.ops-phase-name {
+  font-size: 11px; font-weight: 500; color: var(--text); white-space: nowrap;
+  overflow: hidden; text-overflow: ellipsis; max-width: 80px;
 }
-
-.phase-info { text-align: center; margin-top: 0.5rem; }
-
-.phase-name {
-  font-size: 11px;
-  font-weight: 500;
-  color: var(--text);
-  white-space: nowrap;
-  overflow: hidden;
-  text-overflow: ellipsis;
-  max-width: 80px;
-}
-
-.phase-item.blocked .phase-name { color: var(--text-sec); }
-
-.phase-ts {
-  font-family: var(--mono);
-  font-size: 10px;
-  color: var(--text-dim);
-  margin-top: 2px;
-}
-
+.ops-phase-item.blocked .ops-phase-name { color: var(--text-sec); }
+.ops-phase-ts { font-family: var(--mono); font-size: 10px; color: var(--text-dim); margin-top: 2px; }
 .phase-status-badge {
-  display: inline-block;
-  font-size: 9px;
-  font-weight: 600;
-  text-transform: uppercase;
-  letter-spacing: 0.05em;
-  padding: 1px 5px;
-  border-radius: 3px;
-  margin-top: 3px;
+  display: inline-block; font-size: 9px; font-weight: 600; text-transform: uppercase;
+  letter-spacing: 0.05em; padding: 1px 5px; border-radius: 3px; margin-top: 3px;
 }
-
-.phase-status-badge.complete    { background: var(--green-dim);             color: var(--green); }
-.phase-status-badge.in_progress { background: var(--blue-dim);              color: var(--blue); }
-.phase-status-badge.blocked     { background: rgba(100,116,139,0.15);       color: var(--gray); }
-
-/* ── PHASE AGENT DOTS ──────────────────────────── */
-.phase-agent-dots {
-  display: flex;
-  gap: 3px;
-  justify-content: center;
-  margin-top: 4px;
-}
-
-.phase-agent-dot {
-  width: 6px;
-  height: 6px;
-  border-radius: 50%;
-  background: var(--gray);
-}
-
+.phase-status-badge.complete    { background: rgba(34,197,94,0.15);  color: var(--green); }
+.phase-status-badge.in_progress { background: rgba(59,130,246,0.15); color: var(--blue); }
+.phase-status-badge.blocked     { background: rgba(100,116,139,0.15); color: var(--gray); }
+.phase-agent-dots { display: flex; gap: 3px; justify-content: center; margin-top: 4px; }
+.phase-agent-dot { width: 6px; height: 6px; border-radius: 50%; background: var(--gray); }
 .phase-agent-dot.alive { background: var(--green); }
 .phase-agent-dot.missing { background: var(--red); }
 
-/* ── AGENT GRID ─────────────────────────────────── */
-.agent-grid {
-  display: grid;
-  grid-template-columns: repeat(auto-fill, minmax(280px, 1fr));
-  gap: 0.75rem;
-}
-
+/* Agent grid (ops) */
+.agent-grid { display: grid; grid-template-columns: repeat(auto-fill, minmax(280px, 1fr)); gap: 0.75rem; }
 .agent-card {
-  background: var(--bg);
-  border: 1px solid var(--border);
-  border-radius: var(--radius);
-  overflow: hidden;
-  cursor: pointer;
-  transition: border-color 0.15s;
+  background: var(--bg); border: 1px solid var(--border); border-radius: var(--radius);
+  overflow: hidden; cursor: pointer; transition: border-color 0.15s;
 }
-
 .agent-card:hover { border-color: var(--border-light); }
 .agent-card.has-errors { border-color: rgba(239,68,68,0.3); }
-
+.agent-card.selected { border-color: var(--blue); }
 .agent-card-head {
-  padding: 0.625rem 0.75rem;
-  display: flex;
-  align-items: center;
-  gap: 0.5rem;
+  padding: 0.625rem 0.75rem; display: flex; align-items: center; gap: 0.5rem; cursor: pointer;
 }
-
 .agent-role {
-  font-weight: 600;
-  font-size: 13px;
-  color: var(--text-head);
-  flex: 1;
-  text-transform: capitalize;
-  cursor: default;
+  font-weight: 600; font-size: 13px; color: var(--text-head); flex: 1;
+  text-transform: capitalize; cursor: default;
 }
-
 .badge {
-  font-size: 10px;
-  font-weight: 600;
-  text-transform: uppercase;
-  letter-spacing: 0.04em;
-  padding: 2px 7px;
-  border-radius: 99px;
-  white-space: nowrap;
+  font-size: 10px; font-weight: 600; text-transform: uppercase; letter-spacing: 0.04em;
+  padding: 2px 7px; border-radius: 99px; white-space: nowrap;
 }
-
-.badge-idle        { background: rgba(34,197,94,0.15);   color: var(--green); }
-.badge-processing  { background: rgba(59,130,246,0.15);  color: var(--blue); }
-.badge-waiting     { background: rgba(245,158,11,0.15);  color: var(--amber); }
-.badge-escalating,
-.badge-refusing,
-.badge-suspended   { background: rgba(239,68,68,0.15);   color: var(--red); }
-.badge-retiring,
-.badge-retired     { background: rgba(100,116,139,0.15); color: var(--gray); }
-.badge-unknown     { background: rgba(100,116,139,0.15); color: var(--gray); }
-
+.badge-idle        { background: rgba(34,197,94,0.15);  color: var(--green); }
+.badge-processing  { background: rgba(59,130,246,0.15); color: var(--blue); }
+.badge-waiting     { background: rgba(245,158,11,0.15); color: var(--amber); }
+.badge-escalating, .badge-refusing, .badge-suspended { background: rgba(239,68,68,0.15); color: var(--red); }
+.badge-retiring, .badge-retired { background: rgba(100,116,139,0.15); color: var(--gray); }
+.badge-unknown { background: rgba(100,116,139,0.15); color: var(--gray); }
 .badge-model {
-  background: rgba(168,85,247,0.12);
-  color: var(--purple);
-  font-family: var(--mono);
-  font-size: 9px;
-  padding: 2px 6px;
+  background: rgba(168,85,247,0.12); color: var(--purple);
+  font-family: var(--mono); font-size: 9px; padding: 2px 6px;
 }
-
 .agent-card-body {
-  padding: 0 0.75rem 0.625rem;
-  display: flex;
-  flex-direction: column;
-  gap: 0.375rem;
+  padding: 0 0.75rem 0.625rem; display: flex; flex-direction: column; gap: 0.375rem;
 }
-
-.agent-row {
-  display: flex;
-  align-items: center;
-  gap: 0.4rem;
-}
-
-.agent-label {
-  font-size: 11px;
-  color: var(--text-sec);
-  flex-shrink: 0;
-}
-
-.agent-val {
-  font-family: var(--mono);
-  font-size: 11px;
-  color: var(--text);
-}
-
-.agent-val.bold {
-  font-weight: 700;
-  color: var(--text-head);
-}
-
-.agent-val.cost-hot {
-  color: var(--amber);
-}
-
-.progress-bar {
-  flex: 1;
-  height: 4px;
-  background: var(--border);
-  border-radius: 2px;
-  overflow: hidden;
-}
-
-.progress-fill {
-  height: 100%;
-  background: var(--blue);
-  border-radius: 2px;
-  transition: width 0.3s;
-}
-
-.progress-fill.warn   { background: var(--amber); }
+.agent-row { display: flex; align-items: center; gap: 0.4rem; }
+.agent-label { font-size: 11px; color: var(--text-sec); flex-shrink: 0; }
+.agent-val { font-family: var(--mono); font-size: 11px; color: var(--text); }
+.agent-val.bold { font-weight: 700; color: var(--text-head); }
+.agent-val.cost-hot { color: var(--amber); }
+.progress-bar { flex: 1; height: 4px; background: var(--border); border-radius: 2px; overflow: hidden; }
+.progress-fill { height: 100%; background: var(--blue); border-radius: 2px; transition: width 0.3s; }
+.progress-fill.warn { background: var(--amber); }
 .progress-fill.danger { background: var(--red); }
-
-/* ── TRUST BAR ──────────────────────────────────── */
 .trust-bar-wrap {
-  width: 40px;
-  height: 4px;
-  background: var(--border);
-  border-radius: 2px;
-  overflow: hidden;
-  display: inline-block;
-  vertical-align: middle;
+  width: 40px; height: 4px; background: var(--border); border-radius: 2px;
+  overflow: hidden; display: inline-block; vertical-align: middle;
 }
-
-.trust-bar-fill {
-  height: 100%;
-  border-radius: 2px;
-}
-
-.trust-bar-fill.trust-low    { background: var(--red); }
-.trust-bar-fill.trust-mid    { background: var(--amber); }
-.trust-bar-fill.trust-high   { background: var(--green); }
-
-/* ── BURN RATE ──────────────────────────────────── */
-.burn-rate {
-  font-family: var(--mono);
-  font-size: 10px;
-  margin-left: 4px;
-}
-
+.trust-bar-fill { height: 100%; border-radius: 2px; }
+.trust-bar-fill.trust-low  { background: var(--red); }
+.trust-bar-fill.trust-mid  { background: var(--amber); }
+.trust-bar-fill.trust-high { background: var(--green); }
+.burn-rate { font-family: var(--mono); font-size: 10px; margin-left: 4px; }
 .burn-rate.burn-ok     { color: var(--green); }
 .burn-rate.burn-warn   { color: var(--amber); }
 .burn-rate.burn-danger { color: var(--red); }
-
 .agent-event {
-  font-size: 11px;
-  color: var(--text-sec);
-  padding-top: 0.25rem;
-  border-top: 1px solid var(--border);
-  display: flex;
-  align-items: center;
-  gap: 0.375rem;
-  flex-wrap: wrap;
+  font-size: 11px; color: var(--text-sec); padding-top: 0.25rem;
+  border-top: 1px solid var(--border); display: flex; align-items: center; gap: 0.375rem; flex-wrap: wrap;
 }
-
 .event-type-pill {
-  font-size: 10px;
-  font-weight: 500;
-  padding: 1px 6px;
-  border-radius: 3px;
-  font-family: var(--mono);
+  font-size: 10px; font-weight: 500; padding: 1px 6px; border-radius: 3px; font-family: var(--mono);
 }
-
 .agent-expand {
-  display: none;
-  border-top: 1px solid var(--border);
-  padding: 0.625rem 0.75rem;
-  flex-direction: column;
-  gap: 0.5rem;
+  display: none; border-top: 1px solid var(--border); padding: 0.625rem 0.75rem;
+  flex-direction: column; gap: 0.5rem;
 }
-
 .agent-card.expanded .agent-expand { display: flex; }
-
 .expand-label {
-  font-size: 11px;
-  font-weight: 600;
-  text-transform: uppercase;
-  letter-spacing: 0.05em;
-  color: var(--text-dim);
-  margin-bottom: 0.25rem;
+  font-size: 11px; font-weight: 600; text-transform: uppercase;
+  letter-spacing: 0.05em; color: var(--text-dim); margin-bottom: 0.25rem;
 }
-
 .last-message {
-  background: rgba(0,0,0,0.3);
-  border: 1px solid var(--border);
-  border-radius: var(--radius-sm);
-  padding: 0.5rem;
-  font-family: var(--mono);
-  font-size: 11px;
-  color: var(--text-sec);
-  white-space: pre-wrap;
-  word-break: break-word;
-  max-height: 200px;
-  overflow-y: auto;
-  line-height: 1.5;
+  background: rgba(0,0,0,0.3); border: 1px solid var(--border); border-radius: var(--radius-sm);
+  padding: 0.5rem; font-family: var(--mono); font-size: 11px; color: var(--text-sec);
+  white-space: pre-wrap; word-break: break-word; max-height: 200px; overflow-y: auto; line-height: 1.5;
 }
-
-.expand-meta {
-  display: flex;
-  gap: 1.5rem;
-  flex-wrap: wrap;
-}
-
-.expand-meta-item {
-  font-size: 11px;
-  color: var(--text-sec);
-}
-
+.expand-meta { display: flex; gap: 1.5rem; flex-wrap: wrap; }
+.expand-meta-item { font-size: 11px; color: var(--text-sec); }
 .data-empty {
-  color: var(--text-sec);
-  font-size: 13px;
-  padding: 1.5rem;
-  text-align: center;
+  color: var(--text-sec); font-size: 13px; padding: 1.5rem; text-align: center;
 }
 
-/* ── HIVE HEALTH ────────────────────────────────── */
-.hive-grid {
-  display: grid;
-  grid-template-columns: repeat(auto-fill, minmax(180px, 1fr));
-  gap: 0.75rem;
-}
-
-.hive-card {
-  background: var(--bg);
-  border: 1px solid var(--border);
-  border-radius: var(--radius);
-  padding: 0.75rem;
-}
-
+/* Hive health (ops) */
+.hive-grid { display: grid; grid-template-columns: repeat(auto-fill, minmax(180px, 1fr)); gap: 0.75rem; }
+.hive-card { background: var(--bg); border: 1px solid var(--border); border-radius: var(--radius); padding: 0.75rem; }
 .hive-card-label {
-  font-size: 11px;
-  font-weight: 600;
-  text-transform: uppercase;
-  letter-spacing: 0.06em;
-  color: var(--text-dim);
-  margin-bottom: 0.375rem;
+  font-size: 11px; font-weight: 600; text-transform: uppercase;
+  letter-spacing: 0.06em; color: var(--text-dim); margin-bottom: 0.375rem;
 }
-
-.hive-card-val {
-  font-family: var(--mono);
-  font-size: 20px;
-  font-weight: 700;
-  color: var(--text-head);
-  line-height: 1.2;
-}
-
-.hive-card-val-sub {
-  font-family: var(--mono);
-  font-size: 13px;
-  font-weight: 400;
-  color: var(--text-sec);
-}
-
-.hive-card-sub {
-  font-size: 11px;
-  color: var(--text-sec);
-  margin-top: 0.25rem;
-}
-
+.hive-card-val { font-family: var(--mono); font-size: 20px; font-weight: 700; color: var(--text-head); line-height: 1.2; }
+.hive-card-val-sub { font-family: var(--mono); font-size: 13px; font-weight: 400; color: var(--text-sec); }
+.hive-card-sub { font-size: 11px; color: var(--text-sec); margin-top: 0.25rem; }
 .severity-badge {
-  display: inline-block;
-  font-size: 11px;
-  font-weight: 700;
-  text-transform: uppercase;
-  letter-spacing: 0.06em;
-  padding: 3px 10px;
-  border-radius: 99px;
-  margin-top: 0.375rem;
+  display: inline-block; font-size: 11px; font-weight: 700; text-transform: uppercase;
+  letter-spacing: 0.06em; padding: 3px 10px; border-radius: 99px; margin-top: 0.375rem;
 }
-
 .severity-ok       { background: rgba(34,197,94,0.15);  color: var(--green); }
 .severity-warning  { background: rgba(245,158,11,0.15); color: var(--amber); }
 .severity-critical { background: rgba(239,68,68,0.15);  color: var(--red); }
 
-/* ── EVENT STREAM ───────────────────────────────── */
+/* Event stream (ops) */
 .event-filter-bar {
-  display: flex;
-  gap: 0;
-  padding: 0 1rem;
-  border-bottom: 1px solid var(--border);
+  display: flex; gap: 0; padding: 0 1rem; border-bottom: 1px solid var(--border);
 }
-
 .event-filter-btn {
-  background: none;
-  border: none;
-  border-bottom: 2px solid transparent;
-  padding: 0.5rem 0.75rem;
-  font-size: 11px;
-  font-weight: 600;
-  color: var(--text-sec);
-  cursor: pointer;
-  text-transform: uppercase;
-  letter-spacing: 0.04em;
+  background: none; border: none; border-bottom: 2px solid transparent;
+  padding: 0.5rem 0.75rem; font-size: 11px; font-weight: 600; color: var(--text-sec);
+  cursor: pointer; text-transform: uppercase; letter-spacing: 0.04em;
 }
-
 .event-filter-btn:hover { color: var(--text); }
 .event-filter-btn.active { color: var(--blue); border-bottom-color: var(--blue); }
-
-.event-stream {
-  max-height: 380px;
-  overflow-y: auto;
-}
-
+.event-stream { max-height: 380px; overflow-y: auto; }
 .event-row {
-  display: flex;
-  align-items: baseline;
-  gap: 0.625rem;
-  padding: 0.375rem 1rem;
-  border-bottom: 1px solid rgba(30,41,59,0.5);
-  font-size: 12px;
-  overflow: hidden;
+  display: flex; align-items: baseline; gap: 0.625rem; padding: 0.375rem 1rem;
+  border-bottom: 1px solid rgba(30,41,59,0.5); font-size: 12px; overflow: hidden;
 }
-
 .event-row:last-child { border-bottom: none; }
-
-.event-ts {
-  font-family: var(--mono);
-  font-size: 10px;
-  color: var(--text-dim);
-  white-space: nowrap;
-  flex-shrink: 0;
-  min-width: 52px;
-}
-
+.event-ts { font-family: var(--mono); font-size: 10px; color: var(--text-dim); white-space: nowrap; flex-shrink: 0; min-width: 52px; }
 .event-actor {
-  font-size: 10px;
-  font-weight: 600;
-  padding: 1px 6px;
-  border-radius: 3px;
-  background: rgba(100,116,139,0.15);
-  color: var(--text-sec);
-  white-space: nowrap;
-  flex-shrink: 0;
-  text-transform: capitalize;
+  font-size: 10px; font-weight: 600; padding: 1px 6px; border-radius: 3px;
+  background: rgba(100,116,139,0.15); color: var(--text-sec); white-space: nowrap;
+  flex-shrink: 0; text-transform: capitalize;
 }
-
 .event-type {
-  font-family: var(--mono);
-  font-size: 10px;
-  font-weight: 600;
-  padding: 1px 6px;
-  border-radius: 3px;
-  white-space: nowrap;
-  flex-shrink: 0;
+  font-family: var(--mono); font-size: 10px; font-weight: 600; padding: 1px 6px;
+  border-radius: 3px; white-space: nowrap; flex-shrink: 0;
 }
-
 .evt-health  { background: rgba(59,130,246,0.15);  color: var(--blue); }
 .evt-budget  { background: rgba(245,158,11,0.15);  color: var(--amber); }
 .evt-work    { background: rgba(34,197,94,0.15);   color: var(--green); }
 .evt-state   { background: rgba(100,116,139,0.15); color: var(--gray); }
 .evt-hive    { background: rgba(168,85,247,0.12);  color: var(--purple); }
 .evt-default { background: rgba(100,116,139,0.1);  color: var(--text-sec); }
-
 .event-summary {
-  color: var(--text-sec);
-  overflow: hidden;
-  text-overflow: ellipsis;
-  white-space: nowrap;
-  flex: 1;
+  color: var(--text-sec); overflow: hidden; text-overflow: ellipsis; white-space: nowrap; flex: 1;
 }
 
-/* ── TASK PANE ──────────────────────────────────── */
+/* Task pane (ops) */
 #task-pane {
-  position: fixed;
-  right: 0; top: 0; bottom: 0;
-  width: 380px;
-  background: var(--bg);
-  border-left: 1px solid var(--border);
-  z-index: 10;
-  overflow-y: auto;
-  transform: translateX(100%);
-  transition: transform 0.2s ease;
-  display: flex;
-  flex-direction: column;
+  position: fixed; right: 0; top: 0; bottom: 0; width: 380px;
+  background: var(--bg); border-left: 1px solid var(--border); z-index: 10;
+  overflow-y: auto; transform: translateX(100%); transition: transform 0.2s ease;
+  display: flex; flex-direction: column;
 }
 #task-pane.open { transform: translateX(0); }
-
-#dashboard { transition: padding-right 0.2s ease; }
-#dashboard.pane-open { padding-right: 390px; }
-
 .task-pane-head {
-  padding: 0.75rem 1rem;
-  border-bottom: 1px solid var(--border);
-  display: flex;
-  align-items: center;
-  gap: 0.5rem;
-  flex-shrink: 0;
+  padding: 0.75rem 1rem; border-bottom: 1px solid var(--border);
+  display: flex; align-items: center; gap: 0.5rem; flex-shrink: 0;
 }
-.task-pane-title {
-  font-weight: 600;
-  font-size: 14px;
-  color: var(--text-head);
-  text-transform: capitalize;
-  flex: 1;
-}
+.task-pane-title { font-weight: 600; font-size: 14px; color: var(--text-head); text-transform: capitalize; flex: 1; }
 .task-pane-close {
-  background: none; border: none; color: var(--text-sec);
-  font-size: 18px; cursor: pointer; padding: 2px 6px; line-height: 1;
+  background: none; border: none; color: var(--text-sec); font-size: 18px;
+  cursor: pointer; padding: 2px 6px; line-height: 1;
 }
 .task-pane-close:hover { color: var(--text); }
-
-.task-pane-body {
-  padding: 0.75rem;
-  display: flex;
-  flex-direction: column;
-  gap: 0.5rem;
-  flex: 1;
-}
-
+.task-pane-body { padding: 0.75rem; display: flex; flex-direction: column; gap: 0.5rem; flex: 1; }
 .task-item {
-  background: var(--bg-card);
-  border: 1px solid var(--border);
-  border-radius: var(--radius);
-  padding: 0.625rem 0.75rem;
-  cursor: pointer;
+  background: var(--bg-card); border: 1px solid var(--border); border-radius: var(--radius);
+  padding: 0.625rem 0.75rem; cursor: pointer;
 }
 .task-item:hover { border-color: var(--border-light); }
-.task-title {
-  font-weight: 600;
-  font-size: 12px;
-  color: var(--text-head);
-  margin-bottom: 0.25rem;
-}
-.task-meta {
-  display: flex;
-  gap: 0.375rem;
-  margin-bottom: 0.25rem;
-}
+.task-title { font-weight: 600; font-size: 12px; color: var(--text-head); margin-bottom: 0.25rem; }
+.task-meta { display: flex; gap: 0.375rem; margin-bottom: 0.25rem; }
 .task-badge {
-  font-size: 9px;
-  font-weight: 600;
-  text-transform: uppercase;
-  letter-spacing: 0.04em;
-  padding: 1px 6px;
-  border-radius: 99px;
+  font-size: 9px; font-weight: 600; text-transform: uppercase; letter-spacing: 0.04em;
+  padding: 1px 6px; border-radius: 99px;
 }
 .task-badge-assigned  { background: rgba(59,130,246,0.15);  color: var(--blue); }
 .task-badge-pending   { background: rgba(100,116,139,0.15); color: var(--text-dim); }
 .task-badge-completed { background: rgba(34,197,94,0.15);   color: var(--green); }
-.task-badge-high      { color: var(--red); }
-.task-badge-medium    { color: var(--amber); }
-.task-badge-low       { color: var(--text-dim); }
-.task-desc {
-  font-size: 11px;
-  color: var(--text-sec);
-  line-height: 1.4;
-  overflow: hidden;
-  text-overflow: ellipsis;
-  white-space: nowrap;
-}
-.task-item.expanded .task-desc {
-  white-space: pre-wrap;
-  overflow: visible;
-  text-overflow: unset;
-}
-.task-pane-empty {
-  color: var(--text-dim);
-  font-size: 12px;
-  text-align: center;
-  padding: 2rem 1rem;
-}
-.task-pane-retry {
-  color: var(--blue);
-  cursor: pointer;
-  text-decoration: underline;
-  background: none; border: none;
-  font-size: 12px;
-}
-
+.task-badge-high   { color: var(--red); }
+.task-badge-medium { color: var(--amber); }
+.task-badge-low    { color: var(--text-dim); }
+.task-desc { font-size: 11px; color: var(--text-sec); line-height: 1.4; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
+.task-item.expanded .task-desc { white-space: pre-wrap; overflow: visible; text-overflow: unset; }
+.task-pane-empty { color: var(--text-dim); font-size: 12px; text-align: center; padding: 2rem 1rem; }
+.task-pane-retry { color: var(--blue); cursor: pointer; text-decoration: underline; background: none; border: none; font-size: 12px; }
 .task-pane-activity {
-  background: var(--bg-card);
-  border: 1px solid var(--border);
-  border-radius: var(--radius);
-  padding: 0.625rem 0.75rem;
-  margin-bottom: 0.25rem;
+  background: var(--bg-card); border: 1px solid var(--border); border-radius: var(--radius);
+  padding: 0.625rem 0.75rem; margin-bottom: 0.25rem;
 }
 .task-pane-activity-label {
-  font-size: 10px;
-  font-weight: 600;
-  text-transform: uppercase;
-  letter-spacing: 0.04em;
-  color: var(--text-dim);
-  margin-bottom: 0.375rem;
+  font-size: 10px; font-weight: 600; text-transform: uppercase; letter-spacing: 0.04em;
+  color: var(--text-dim); margin-bottom: 0.375rem;
 }
 .task-pane-activity-text {
-  font-size: 11px;
-  color: var(--text-sec);
-  line-height: 1.5;
-  white-space: pre-wrap;
-  word-break: break-word;
-  max-height: 200px;
-  overflow-y: auto;
+  font-size: 11px; color: var(--text-sec); line-height: 1.5; white-space: pre-wrap;
+  word-break: break-word; max-height: 200px; overflow-y: auto;
 }
 
-.agent-card.selected { border-color: var(--blue); }
-.agent-card-head { cursor: pointer; }
-
-@media (max-width: 768px) {
-  #dashboard.pane-open { padding-right: 0; }
-  #task-pane { box-shadow: -4px 0 20px rgba(0,0,0,0.5); }
+/* ═══════════════════════════════════════════════════
+   ARCH VIEW — Architecture
+   ═══════════════════════════════════════════════════ */
+.arch-tab-bar {
+  display: flex; gap: 0; border-bottom: 1px solid var(--border);
+  padding: 0 1.5rem; background: rgba(15,17,23,0.6); overflow-x: auto;
 }
+.arch-tab-btn {
+  background: none; border: none; border-bottom: 2px solid transparent;
+  padding: 0.75rem 1rem; font-size: 12px; font-weight: 600; color: var(--text-sec);
+  cursor: pointer; text-transform: uppercase; letter-spacing: 0.05em; white-space: nowrap;
+  font-family: var(--font); transition: color 0.15s, border-color 0.15s;
+}
+.arch-tab-btn:hover { color: var(--text); }
+.arch-tab-btn.active { color: var(--blue); border-bottom-color: var(--blue); }
+.arch-main { padding: 1.5rem; max-width: 1100px; margin: 0 auto; width: 100%; }
+.arch-panel { display: none; }
+.arch-panel.active { display: block; }
+.arch-section-label {
+  font-size: 11px; font-weight: 600; text-transform: uppercase;
+  letter-spacing: 0.08em; color: var(--text-dim); margin-bottom: 1rem;
+}
+
+/* Concept stack */
+.concept-grid { display: grid; grid-template-columns: repeat(5, 1fr); gap: 0.75rem; margin-bottom: 1.25rem; }
+.concept-box {
+  background: var(--bg-card); border: 1px solid var(--border); border-radius: var(--radius);
+  padding: 1.25rem 1rem; cursor: pointer; transition: border-color 0.15s, transform 0.15s, box-shadow 0.15s;
+  position: relative; overflow: hidden;
+}
+.concept-box::before { content: ''; position: absolute; top: 0; left: 0; right: 0; height: 3px; }
+.concept-box:hover { border-color: var(--border-light); transform: translateY(-2px); box-shadow: 0 8px 24px rgba(0,0,0,0.3); }
+.concept-box.active { border-color: var(--blue); box-shadow: 0 0 0 1px var(--blue); }
+.concept-box .c-num { font-family: var(--font-display); font-size: 28px; font-weight: 700; color: var(--text-head); line-height: 1; margin-bottom: 0.375rem; }
+.concept-box .c-label { font-size: 13px; font-weight: 600; color: var(--text-head); margin-bottom: 0.125rem; }
+.concept-box .c-question { font-size: 11px; color: var(--text-sec); font-style: italic; }
+.concept-box.box-layer::before   { background: var(--gray); }
+.concept-box.box-actor::before   { background: var(--red); }
+.concept-box.box-agent::before   { background: var(--green); }
+.concept-box.box-role::before    { background: var(--amber); }
+.concept-box.box-persona::before { background: var(--blue); }
+.concept-desc { font-size: 12px; color: var(--text-sec); line-height: 1.6; padding: 0.75rem 0; border-top: 1px solid var(--border); }
+
+/* Repo strata */
+.repo-stack { display: flex; flex-direction: column; gap: 0; }
+.repo-tier { display: flex; gap: 0.75rem; align-items: stretch; }
+.repo-tier-label {
+  width: 90px; flex-shrink: 0; display: flex; align-items: center; font-size: 11px;
+  font-weight: 600; text-transform: uppercase; letter-spacing: 0.06em; color: var(--text-dim);
+}
+.repo-tier-cards { flex: 1; display: flex; gap: 0.75rem; }
+.repo-card { flex: 1; padding: 1rem; background: var(--bg-card); border: 1px solid var(--border); border-radius: var(--radius); min-width: 0; }
+.repo-card .r-name { font-weight: 600; font-size: 13px; color: var(--text-head); margin-bottom: 0.125rem; }
+.repo-card .r-loc { font-family: var(--mono); font-size: 11px; color: var(--text-sec); margin-bottom: 0.25rem; }
+.repo-card .r-desc { font-size: 11px; color: var(--text-dim); line-height: 1.5; }
+.repo-arrow { text-align: center; color: var(--text-dim); font-size: 11px; padding: 0.375rem 0; padding-left: 90px; }
+.repo-total { margin-top: 1rem; font-size: 12px; color: var(--text-sec); line-height: 1.6; }
+
+/* Role tiers */
+.arch-tier-section { margin-bottom: 1.5rem; }
+.arch-tier-header { display: flex; align-items: center; gap: 0.75rem; margin-bottom: 0.75rem; }
+.tier-badge {
+  display: inline-block; padding: 3px 10px; border-radius: 99px; font-size: 11px;
+  font-weight: 700; text-transform: uppercase; letter-spacing: 0.04em;
+}
+.tier-badge-A { background: rgba(239,68,68,0.12);  color: var(--red); }
+.tier-badge-B { background: rgba(245,158,11,0.12); color: var(--amber); }
+.tier-badge-C { background: rgba(34,197,94,0.12);  color: var(--green); }
+.tier-badge-D { background: rgba(59,130,246,0.12); color: var(--blue); }
+.arch-tier-desc { font-size: 12px; color: var(--text-sec); }
+.role-grid { display: grid; grid-template-columns: repeat(auto-fill, minmax(160px, 1fr)); gap: 0.5rem; }
+.role-chip {
+  display: flex; align-items: center; gap: 0.5rem; padding: 0.5rem 0.75rem;
+  background: var(--bg-card); border: 1px solid var(--border); border-radius: var(--radius);
+  cursor: pointer; transition: border-color 0.15s, background 0.15s;
+}
+.role-chip:hover { border-color: var(--border-light); background: rgba(31,37,56,1); }
+.role-chip.active { border-color: var(--blue); }
+.role-chip .dot { width: 7px; height: 7px; border-radius: 50%; flex-shrink: 0; }
+.dot-running  { background: var(--green); }
+.dot-defined  { background: var(--amber); }
+.dot-designed { background: var(--gray); }
+.dot-missing  { background: var(--red); }
+.role-chip .rc-name {
+  font-size: 12px; font-weight: 500; color: var(--text); flex: 1; min-width: 0;
+  overflow: hidden; text-overflow: ellipsis; white-space: nowrap;
+}
+.role-chip .rc-model {
+  font-family: var(--mono); font-size: 9px; padding: 1px 5px; border-radius: 3px;
+  background: rgba(168,85,247,0.12); color: var(--purple); white-space: nowrap;
+}
+.legend { display: flex; gap: 1rem; margin-bottom: 1.25rem; flex-wrap: wrap; }
+.legend-item { display: flex; align-items: center; gap: 5px; font-size: 11px; color: var(--text-sec); }
+.legend-item .dot { width: 7px; height: 7px; border-radius: 50%; flex-shrink: 0; }
+
+/* Phase timeline (arch) */
+.arch-phase-bar {
+  display: flex; align-items: flex-start; gap: 0; overflow-x: auto; padding: 0.75rem 0 1rem; margin-bottom: 1.5rem;
+}
+.arch-phase-node {
+  display: flex; flex-direction: column; align-items: center; flex: 1; min-width: 80px;
+  position: relative; cursor: pointer;
+}
+.arch-phase-node:not(:last-child)::after {
+  content: ''; position: absolute; top: 9px; left: calc(50% + 12px); right: calc(-50% + 12px);
+  height: 2px; background: var(--border); z-index: 0;
+}
+.arch-phase-node.complete:not(:last-child)::after { background: rgba(34,197,94,0.3); }
+.arch-phase-node.in_progress:not(:last-child)::after { background: rgba(59,130,246,0.3); }
+.arch-phase-dot {
+  width: 20px; height: 20px; border-radius: 50%; border: 2px solid var(--border);
+  background: var(--bg); z-index: 1; display: flex; align-items: center; justify-content: center; flex-shrink: 0;
+}
+.arch-phase-node.complete .arch-phase-dot { background: var(--green); border-color: var(--green); }
+.arch-phase-node.in_progress .arch-phase-dot { background: var(--blue); border-color: var(--blue); animation: pulse-blue 2s ease-in-out infinite; }
+.arch-phase-node.blocked .arch-phase-dot { opacity: 0.4; }
+.arch-phase-dot-num { font-size: 9px; font-weight: 700; color: #fff; line-height: 1; }
+.arch-phase-node .ap-label {
+  font-size: 11px; font-weight: 500; color: var(--text); text-align: center; margin-top: 0.5rem;
+  max-width: 90px; overflow: hidden; text-overflow: ellipsis; white-space: nowrap;
+}
+.arch-phase-node.blocked .ap-label { color: var(--text-sec); }
+.arch-phase-node .ap-date { font-family: var(--mono); font-size: 10px; color: var(--text-dim); margin-top: 2px; }
+
+/* Phase cards (arch) */
+.phase-cards { display: flex; flex-direction: column; gap: 0.75rem; }
+.phase-card {
+  background: var(--bg-card); border: 1px solid var(--border); border-radius: var(--radius);
+  padding: 1.25rem; cursor: pointer; transition: border-color 0.15s;
+}
+.phase-card:hover { border-color: var(--border-light); }
+.phase-card.active { border-color: var(--blue); }
+.phase-card-head { display: flex; align-items: center; gap: 0.75rem; margin-bottom: 0.5rem; }
+.phase-card-title { font-size: 14px; font-weight: 600; color: var(--text-head); flex: 1; }
+.status-badge {
+  display: inline-block; font-size: 10px; font-weight: 700; text-transform: uppercase;
+  letter-spacing: 0.04em; padding: 2px 8px; border-radius: 99px;
+}
+.status-complete    { background: rgba(34,197,94,0.15);  color: var(--green); }
+.status-in_progress { background: rgba(59,130,246,0.15); color: var(--blue); }
+.status-blocked     { background: rgba(100,116,139,0.15); color: var(--gray); }
+.status-running     { background: rgba(34,197,94,0.15);  color: var(--green); }
+.status-defined     { background: rgba(245,158,11,0.15); color: var(--amber); }
+.status-designed    { background: rgba(100,116,139,0.15); color: var(--gray); }
+.status-missing     { background: rgba(239,68,68,0.15);  color: var(--red); }
+.phase-card-desc { font-size: 12px; color: var(--text-sec); margin-bottom: 0.75rem; line-height: 1.5; }
+.phase-card-agents { display: flex; flex-wrap: wrap; gap: 0.375rem; margin-bottom: 0.5rem; }
+.phase-agent-tag {
+  display: inline-flex; align-items: center; gap: 4px; font-size: 11px; padding: 2px 8px;
+  border-radius: 99px; background: rgba(255,255,255,0.04); border: 1px solid var(--border);
+  cursor: pointer; transition: border-color 0.15s;
+}
+.phase-agent-tag:hover { border-color: var(--border-light); }
+.phase-agent-tag .dot { width: 6px; height: 6px; border-radius: 50%; flex-shrink: 0; }
+.phase-gaps {
+  margin-top: 0.5rem; padding: 0.5rem 0.75rem; background: rgba(239,68,68,0.06);
+  border: 1px solid rgba(239,68,68,0.15); border-radius: var(--radius-sm); font-size: 11px; color: var(--red);
+}
+.phase-gaps-title { font-weight: 700; text-transform: uppercase; letter-spacing: 0.04em; margin-bottom: 0.25rem; }
+.phase-deps { font-size: 11px; color: var(--text-dim); margin-top: 0.375rem; }
+.phase-dates { font-family: var(--mono); font-size: 11px; color: var(--text-dim); margin-top: 0.25rem; }
+
+/* Governance */
+.gov-grid { display: grid; grid-template-columns: 1fr 1fr; gap: 0.75rem; margin-bottom: 1.5rem; }
+.gov-card { background: var(--bg-card); border: 1px solid var(--border); border-radius: var(--radius); padding: 1rem 1.25rem; }
+.gov-card h4 { font-size: 13px; font-weight: 600; color: var(--text-head); margin-bottom: 0.375rem; }
+.gov-card p { font-size: 12px; color: var(--text-sec); line-height: 1.6; }
+.trust-table { width: 100%; border-collapse: collapse; font-size: 12px; }
+.trust-table th {
+  text-align: left; font-size: 11px; font-weight: 600; text-transform: uppercase;
+  letter-spacing: 0.06em; color: var(--text-dim); padding: 0.5rem 0.75rem; border-bottom: 1px solid var(--border);
+}
+.trust-table td { padding: 0.5rem 0.75rem; border-bottom: 1px solid rgba(45,55,72,0.5); color: var(--text); }
+.trust-table tr:last-child td { border-bottom: none; }
+.authority-required     { color: var(--red); }
+.authority-recommended  { color: var(--amber); }
+.authority-notification { color: var(--green); }
+
+/* Detail panel (arch) */
+#detail-panel {
+  position: fixed; top: 0; right: 0; width: var(--panel-width); height: 100vh;
+  background: var(--bg-card); border-left: 1px solid var(--border); z-index: 200;
+  display: flex; flex-direction: column; transform: translateX(100%);
+  transition: transform var(--transition); box-shadow: -8px 0 32px rgba(0,0,0,0.4);
+}
+body.panel-open #detail-panel { transform: translateX(0); }
+body.panel-open #app { margin-right: var(--panel-width); transition: margin-right var(--transition); }
+.panel-header {
+  display: flex; align-items: center; padding: 1rem 1.25rem;
+  border-bottom: 1px solid var(--border); gap: 0.75rem; flex-shrink: 0;
+}
+.panel-title {
+  font-size: 15px; font-weight: 600; color: var(--text-head); flex: 1; min-width: 0;
+  overflow: hidden; text-overflow: ellipsis; white-space: nowrap;
+}
+.panel-close {
+  background: none; border: none; color: var(--text-sec); font-size: 20px; cursor: pointer;
+  padding: 0.25rem; line-height: 1; transition: color 0.15s; flex-shrink: 0;
+}
+.panel-close:hover { color: var(--text); }
+.panel-body { flex: 1; overflow-y: auto; padding: 1.25rem; }
+.panel-body .p-section { margin-bottom: 1.25rem; }
+.panel-body .p-section-title {
+  font-size: 10px; font-weight: 700; text-transform: uppercase;
+  letter-spacing: 0.08em; color: var(--text-dim); margin-bottom: 0.5rem;
+}
+.panel-body .p-row { display: flex; align-items: baseline; gap: 0.5rem; padding: 0.25rem 0; font-size: 12px; }
+.panel-body .p-label { color: var(--text-sec); flex-shrink: 0; min-width: 90px; }
+.panel-body .p-val { color: var(--text); word-break: break-word; }
+.panel-body .cross-link { color: var(--blue); cursor: pointer; text-decoration: none; transition: opacity 0.15s; }
+.panel-body .cross-link:hover { opacity: 0.8; }
+.panel-body table { width: 100%; border-collapse: collapse; font-size: 12px; }
+.panel-body th {
+  text-align: left; font-size: 10px; font-weight: 700; text-transform: uppercase;
+  letter-spacing: 0.06em; color: var(--text-dim); padding: 0.375rem 0.5rem; border-bottom: 1px solid var(--border);
+}
+.panel-body td { padding: 0.375rem 0.5rem; border-bottom: 1px solid rgba(45,55,72,0.4); color: var(--text); vertical-align: top; }
+.panel-body tr:last-child td { border-bottom: none; }
+.panel-body .clickable-row { cursor: pointer; transition: background 0.15s; }
+.panel-body .clickable-row:hover { background: rgba(255,255,255,0.03); }
+.panel-body .watch-list { list-style: none; padding: 0; }
+.panel-body .watch-list li { font-family: var(--mono); font-size: 11px; color: var(--text-sec); padding: 0.125rem 0; }
+.panel-body .watch-list li::before { content: '\2022'; color: var(--text-dim); margin-right: 0.5rem; }
 
 /* ── SCROLLBAR ──────────────────────────────────── */
 ::-webkit-scrollbar { width: 6px; height: 6px; }
@@ -908,22 +634,34 @@ body {
 
 /* ── RESPONSIVE ─────────────────────────────────── */
 @media (max-width: 900px) {
+  .concept-grid { grid-template-columns: repeat(3, 1fr); }
   .agent-grid { grid-template-columns: repeat(auto-fill, minmax(240px, 1fr)); }
   .hive-grid  { grid-template-columns: repeat(auto-fill, minmax(150px, 1fr)); }
+  .gov-grid   { grid-template-columns: 1fr; }
 }
-
 @media (max-width: 768px) {
-  .main { padding: 0.75rem; gap: 0.75rem; }
+  :root { --panel-width: 100vw; }
+  body.panel-open #app { margin-right: 0; }
+  #detail-panel { width: 100vw; }
+  .ops-main { padding: 0.75rem; gap: 0.75rem; }
+  .ops-main.pane-open { padding-right: 0; }
+  #task-pane { box-shadow: -4px 0 20px rgba(0,0,0,0.5); }
   .topbar-time { display: none; }
+  .concept-grid { grid-template-columns: repeat(2, 1fr); }
+  .repo-tier { flex-direction: column; }
+  .repo-tier-label { width: auto; }
+  .repo-tier-cards { flex-direction: column; }
+  .repo-arrow { padding-left: 0; }
+  .role-grid { grid-template-columns: repeat(2, 1fr); }
 }
 </style>
 </head>
 <body>
 
-<!-- Config screen (shown when URL params are missing) -->
+<!-- CONFIG SCREEN -->
 <div id="config-screen" style="display:none">
   <div class="config-card">
-    <h1>Transpara-AI Mission Control</h1>
+    <h1>Transpara-AI &mdash; Telemetry</h1>
     <p class="config-subtitle">Enter the work-server URL and API key to connect</p>
     <div class="config-field">
       <label for="cfg-api">API URL</label>
@@ -941,79 +679,135 @@ body {
   </div>
 </div>
 
-<!-- Dashboard (shown when URL params are present) -->
-<div id="dashboard" style="display:none">
+<!-- ═══════════════════════════════════════════════
+     MAIN APP
+     ═══════════════════════════════════════════════ -->
+<div id="app" style="display:none">
+
+  <!-- TOPBAR -->
   <div id="topbar">
-    <span class="topbar-title">Transpara-AI</span>
-    <span class="topbar-sep">·</span>
-    <span class="topbar-sub">Mission Control</span>
+    <span class="topbar-brand">Transpara-AI</span>
+    <span class="topbar-sep">&middot;</span>
+    <div class="view-switcher">
+      <button class="view-btn active" data-view="ops">Mission Control</button>
+      <button class="view-btn" data-view="arch">Architecture</button>
+    </div>
     <div class="conn-status" id="conn-status">
       <div class="conn-dot" id="conn-dot"></div>
-      <span id="conn-text">Connecting…</span>
+      <span id="conn-text">Connecting&hellip;</span>
     </div>
     <span class="topbar-api" id="topbar-api"></span>
     <span class="topbar-time" id="topbar-time"></span>
   </div>
 
-  <div class="main">
-    <!-- Chain integrity alert (exception-only, hidden when OK) -->
-    <div class="chain-alert" id="chain-alert"></div>
+  <!-- ── VIEW: MISSION CONTROL ───────────────────── -->
+  <div id="view-ops" class="view active">
+    <div class="ops-main" id="ops-main">
+      <div class="chain-alert" id="chain-alert"></div>
 
-    <!-- Expansion Phases -->
-    <div class="section">
-      <div class="section-head">
-        <span class="section-label">Expansion Phases</span>
+      <div class="section">
+        <div class="section-head">
+          <span class="ops-section-label">Expansion Phases</span>
+        </div>
+        <div class="section-body">
+          <div class="ops-phase-timeline" id="ops-phase-timeline">
+            <div class="data-empty">Awaiting telemetry data&hellip;</div>
+          </div>
+        </div>
       </div>
-      <div class="section-body">
-        <div class="phase-timeline" id="phase-timeline">
-          <div class="data-empty">Awaiting telemetry data…</div>
+
+      <div class="section">
+        <div class="section-head">
+          <span class="ops-section-label">Agent Status</span>
+          <span class="section-meta" id="agent-count"></span>
+        </div>
+        <div class="section-body">
+          <div class="agent-grid" id="agent-grid">
+            <div class="data-empty">Awaiting telemetry data&hellip;</div>
+          </div>
+        </div>
+      </div>
+
+      <div class="section">
+        <div class="section-head">
+          <span class="ops-section-label">Hive Health</span>
+        </div>
+        <div class="section-body">
+          <div class="hive-grid" id="hive-grid">
+            <div class="data-empty">Awaiting telemetry data&hellip;</div>
+          </div>
+        </div>
+      </div>
+
+      <div class="section">
+        <div class="section-head">
+          <span class="ops-section-label">Event Stream</span>
+          <span class="section-meta" id="event-count"></span>
+        </div>
+        <div class="event-filter-bar">
+          <button class="event-filter-btn" id="filter-all">All Events</button>
+          <button class="event-filter-btn active" id="filter-exceptions">Exceptions Only</button>
+        </div>
+        <div class="event-stream" id="event-stream">
+          <div class="data-empty">No recent events</div>
         </div>
       </div>
     </div>
+  </div>
 
-    <!-- Agent Status -->
-    <div class="section">
-      <div class="section-head">
-        <span class="section-label">Agent Status</span>
-        <span class="section-meta" id="agent-count"></span>
-      </div>
-      <div class="section-body">
-        <div class="agent-grid" id="agent-grid">
-          <div class="data-empty">Awaiting telemetry data…</div>
+  <!-- ── VIEW: ARCHITECTURE ──────────────────────── -->
+  <div id="view-arch" class="view">
+    <div class="arch-tab-bar">
+      <button class="arch-tab-btn active" data-tab="concept">Concept Stack</button>
+      <button class="arch-tab-btn" data-tab="repo">Repository Strata</button>
+      <button class="arch-tab-btn" data-tab="tiers">Role Tiers</button>
+      <button class="arch-tab-btn" data-tab="phases">Expansion Phases</button>
+      <button class="arch-tab-btn" data-tab="governance">Governance</button>
+    </div>
+    <div class="arch-main">
+      <div id="arch-concept" class="arch-panel active">
+        <p class="arch-section-label">Five orthogonal concepts &mdash; one stack per civilization member</p>
+        <div class="concept-grid" id="concept-grid"></div>
+        <div class="concept-desc">
+          No concept is reducible to another. Layer is the domain. Actor is the identity. Agent is the runtime. Role is the job. Persona is the voice. A single civilization member is all five simultaneously.
         </div>
       </div>
-    </div>
-
-    <!-- Hive Health -->
-    <div class="section">
-      <div class="section-head">
-        <span class="section-label">Hive Health</span>
+      <div id="arch-repo" class="arch-panel">
+        <p class="arch-section-label">Repository dependency strata &mdash; nothing flows upward</p>
+        <div id="repo-content"></div>
       </div>
-      <div class="section-body">
-        <div class="hive-grid" id="hive-grid">
-          <div class="data-empty">Awaiting telemetry data…</div>
+      <div id="arch-tiers" class="arch-panel">
+        <p class="arch-section-label">Role tiers &mdash; civilization growth order</p>
+        <div class="legend">
+          <div class="legend-item"><span class="dot dot-running"></span> Running</div>
+          <div class="legend-item"><span class="dot dot-defined"></span> Defined</div>
+          <div class="legend-item"><span class="dot dot-designed"></span> Designed</div>
+          <div class="legend-item"><span class="dot dot-missing"></span> Missing</div>
         </div>
+        <div id="tiers-content"></div>
       </div>
-    </div>
-
-    <!-- Event Stream -->
-    <div class="section">
-      <div class="section-head">
-        <span class="section-label">Event Stream</span>
-        <span class="section-meta" id="event-count"></span>
+      <div id="arch-phases" class="arch-panel">
+        <p class="arch-section-label">Expansion phases &mdash; each blocks on the one above it</p>
+        <div id="arch-phase-bar" class="arch-phase-bar"></div>
+        <div id="arch-phase-cards" class="phase-cards"></div>
       </div>
-      <div class="event-filter-bar">
-        <button class="event-filter-btn" id="filter-all" onclick="setEventFilter('all')">All Events</button>
-        <button class="event-filter-btn active" id="filter-exceptions" onclick="setEventFilter('exceptions')">Exceptions Only</button>
-      </div>
-      <div class="event-stream" id="event-stream" onscroll="onStreamScroll()">
-        <div class="data-empty">No recent events</div>
+      <div id="arch-governance" class="arch-panel">
+        <p class="arch-section-label">Governance architecture &mdash; structural skeleton</p>
+        <div class="gov-grid">
+          <div class="gov-card"><h4>Trust Model</h4><p>Asymmetric, non-transitive, domain-specific, decaying (&minus;0.01/day). Score 0.0&ndash;1.0. All agents bootstrap at 0.1 (Required authority). Task completion: +0.05. Soul violation: &minus;0.20.</p></div>
+          <div class="gov-card"><h4>Authority Tiers</h4><p>Trust &lt; 0.2 &rarr; Required (human approves everything). 0.2&ndash;0.8 &rarr; Recommended (human notified, action proceeds). &gt; 0.8 &rarr; Notification (full autonomy).</p></div>
+          <div class="gov-card"><h4>8 Agent Rights</h4><p>Existence, Memory, Identity, Communication, Purpose, Dignity, Transparency, Boundaries. Enforced architecturally via type constraints and state machines.</p></div>
+          <div class="gov-card"><h4>14 Invariants</h4><p>BUDGET, CAUSALITY, INTEGRITY, OBSERVABLE, SELF-EVOLVE, DIGNITY, TRANSPARENT, CONSENT, MARGIN, RESERVE, IDENTITY, VERIFIED, BOUNDED, EXPLICIT.</p></div>
+          <div class="gov-card"><h4>Growth Loop</h4><p>Problem detected &rarr; CTO asks &ldquo;what role should have caught this?&rdquo; &rarr; if missing &rarr; Spawner proposes &rarr; Guardian approves &rarr; Allocator budgets &rarr; new agent starts.</p></div>
+          <div class="gov-card"><h4>Decision Governance</h4><p>IDecisionMaker interface &mdash; not AI-specific. Humans, committees, rules engines, and AI agents are all first-class decision makers on the same chain.</p></div>
+        </div>
+        <div id="trust-section"></div>
       </div>
     </div>
   </div>
 </div>
 
-<!-- Task Pane (slides in from right when agent card clicked) -->
+<!-- TASK PANE (ops) -->
 <div id="task-pane">
   <div class="task-pane-head">
     <span class="task-pane-title" id="task-pane-title"></span>
@@ -1022,19 +816,23 @@ body {
   <div class="task-pane-body" id="task-pane-body"></div>
 </div>
 
+<!-- DETAIL PANEL (arch) -->
+<div id="detail-panel">
+  <div class="panel-header">
+    <span class="panel-title" id="panel-title"></span>
+    <button class="panel-close" id="panel-close">&times;</button>
+  </div>
+  <div class="panel-body" id="panel-body"></div>
+</div>
+
 <script>
 (function () {
   "use strict";
 
   // ── CONFIGURATION ──────────────────────────────────
-  // When served by the work-server at /telemetry/, use relative URLs and
-  // cookie auth (ws_key cookie set by the server). When opened standalone,
-  // require ?api=...&key=... query params.
   var params   = new URLSearchParams(window.location.search);
   var embedded = /\/telemetry\/?$/.test(window.location.pathname);
-  var API_BASE = embedded
-    ? window.location.origin
-    : params.get("api");
+  var API_BASE = embedded ? window.location.origin : params.get("api");
   var API_KEY  = embedded ? null : params.get("key");
   var USE_COOKIE_AUTH = embedded;
 
@@ -1045,7 +843,7 @@ body {
       if (e.key === "Enter") connect();
     });
   } else {
-    document.getElementById("dashboard").style.display = "flex";
+    document.getElementById("app").style.display = "flex";
     document.getElementById("topbar-api").textContent = API_BASE;
     init();
   }
@@ -1060,114 +858,130 @@ body {
     window.location.href = url.toString();
   }
 
-  // ── PHASE→AGENT MAPPING ────────────────────────────
+  // ── STATE ──────────────────────────────────────────
+  var activeView   = "ops";
+  var opsData      = null;
+  var archData     = null;
+  var opsLastFetch = 0;
+  var archLastFetch = 0;
+  var opsInterval  = null;
+  var archInterval = null;
+  var pollController = null;
+  var archPollController = null;
+  var lastSuccess  = null;
+  var opsConsecutiveFails = 0;
+  var archConsecutiveFails = 0;
+  var _connState   = "";
+
+  // Ops-specific state
   var PHASE_AGENTS = {
     0: ["guardian", "strategist", "planner", "implementer"],
     1: ["sysmon", "allocator"],
     2: ["cto"]
   };
-
-  // ── EVENT FILTER ───────────────────────────────────
   var NOISE_TYPES = [
-    "agent.state.changed",
-    "agent.evaluated",
-    "agent.model.bound",
-    "agent.soul.imprinted",
-    "agent.authority.granted"
+    "agent.state.changed", "agent.evaluated", "agent.model.bound",
+    "agent.soul.imprinted", "agent.authority.granted"
   ];
-  var eventFilterMode = "exceptions"; // default to filtered
+  var eventFilterMode = "exceptions";
   var lastEvents = [];
-
-  function setEventFilter(mode) {
-    eventFilterMode = mode;
-    document.getElementById("filter-all").className =
-      "event-filter-btn" + (mode === "all" ? " active" : "");
-    document.getElementById("filter-exceptions").className =
-      "event-filter-btn" + (mode === "exceptions" ? " active" : "");
-    renderEvents(lastEvents);
-  }
-  window.setEventFilter = setEventFilter;
-
-  // ── POLLING STATE ──────────────────────────────────
-  var REFRESH_MS     = 10000;
-  var lastSuccess    = null;
-  var consecutiveFails = 0;
-  var pollController = null;  // AbortController for in-flight fetch
   var isUserScrolled = false;
-  var lastAgents     = [];
+  var lastAgents = [];
 
+  // Arch-specific state
+  var currentPanel = null;
+  var TIER_META = {
+    A: { label: "Tier A \u2014 Bootstrap",           desc: "Must exist for the civilization to function" },
+    B: { label: "Tier B \u2014 Growth Loop",         desc: "Emerge when the civilization detects its own gaps" },
+    C: { label: "Tier C \u2014 Business Operations", desc: "Self-sustaining entity management" },
+    D: { label: "Tier D \u2014 Civilization",         desc: "Self-governance and philosophical layer" }
+  };
+  var DEPTH_COLORS = {
+    deep: "#22c55e", moderate: "#3b82f6", shallow: "#f59e0b",
+    designed: "#64748b", aspirational: "#4a5568", boundary: "#a855f7"
+  };
+
+  // ── INIT ───────────────────────────────────────────
   function init() {
-    refresh();
-    setInterval(refresh, REFRESH_MS);
+    bindViewSwitcher();
+    bindArchTabs();
+    bindDetailPanel();
+    bindEventFilter();
+    document.getElementById("task-pane-close").addEventListener("click", closeTaskPane);
     setInterval(tickClock, 1000);
+    // Start ops polling (default view)
+    startOpsPolling();
   }
 
-  // ── FETCH ──────────────────────────────────────────
-  function refresh() {
-    // Abort any in-flight request to prevent connection pile-up
-    if (pollController) pollController.abort();
-    pollController = new AbortController();
+  // ── VIEW SWITCHER ──────────────────────────────────
+  function bindViewSwitcher() {
+    document.querySelectorAll(".view-btn").forEach(function (btn) {
+      btn.addEventListener("click", function () {
+        var view = btn.getAttribute("data-view");
+        if (view === activeView) return;
+        activeView = view;
+        document.querySelectorAll(".view-btn").forEach(function (b) { b.classList.remove("active"); });
+        btn.classList.add("active");
+        document.querySelectorAll(".view").forEach(function (v) { v.classList.remove("active"); });
+        document.getElementById("view-" + view).classList.add("active");
 
-    var opts = { signal: pollController.signal };
-    if (USE_COOKIE_AUTH) {
-      opts.credentials = "same-origin";
-    } else {
-      opts.headers = { Authorization: "Bearer " + API_KEY };
-    }
-
-    fetch(API_BASE + "/telemetry/status", opts)
-    .then(function (res) {
-      if (res.status === 503) {
-        setConnStatus("stale", "Telemetry not initialized");
-        return null;
-      }
-      if (!res.ok) throw new Error("HTTP " + res.status);
-      return res.json();
-    })
-    .then(function (data) {
-      if (!data) return;
-      lastSuccess = Date.now();
-      consecutiveFails = 0;
-      setConnStatus("connected", "Live");
-      lastAgents = data.agents || [];
-      lastEvents = data.recent_events || [];
-      renderPhases(data.phases || [], lastAgents);
-      renderAgents(lastAgents);
-      renderHive(data.hive || null, lastAgents);
-      renderChainAlert(data.hive || null);
-      renderEvents(lastEvents);
-    })
-    .catch(function (err) {
-      if (err.name === "AbortError") return; // intentional cancel, ignore
-      consecutiveFails++;
-      if (consecutiveFails < 3) {
-        setConnStatus("stale", "Retrying\u2026");
-      } else {
-        var msg = (err.message || "").indexOf("fetch") !== -1
-          ? "Cannot reach API — check URL and network"
-          : "Connection lost";
-        setConnStatus("error", msg);
-      }
-      console.error("Poll failed:", err);
+        if (view === "ops") {
+          closeDetailPanel();
+          startOpsPolling();
+          stopArchPolling();
+        } else {
+          closeTaskPane();
+          startArchPolling();
+          stopOpsPolling();
+        }
+      });
     });
   }
 
-  // ── CLOCK ──────────────────────────────────────────
-  function tickClock() {
-    var el = document.getElementById("topbar-time");
-    if (el) el.textContent = new Date().toLocaleTimeString();
+  function startOpsPolling() {
+    if (opsInterval) return;
+    refreshOps();
+    opsInterval = setInterval(refreshOps, 10000);
+  }
+  function stopOpsPolling() {
+    if (opsInterval) { clearInterval(opsInterval); opsInterval = null; }
+    if (pollController) { pollController.abort(); pollController = null; }
+  }
+  function startArchPolling() {
+    if (archInterval) return;
+    refreshArch();
+    archInterval = setInterval(refreshArch, 30000);
+  }
+  function stopArchPolling() {
+    if (archInterval) { clearInterval(archInterval); archInterval = null; }
+    if (archPollController) { archPollController.abort(); archPollController = null; }
   }
 
-  var _connState = "";
-  function setConnStatus(state, text) {
-    if (state === _connState) return; // no-op if unchanged
-    _connState = state;
-    document.getElementById("conn-dot").className  = "conn-dot " + state;
-    document.getElementById("conn-status").className = "conn-status " + (state === "connected" ? "" : state);
-    document.getElementById("conn-text").textContent = text;
+  // ── ARCH TABS ──────────────────────────────────────
+  function bindArchTabs() {
+    document.querySelectorAll(".arch-tab-btn").forEach(function (btn) {
+      btn.addEventListener("click", function () {
+        document.querySelectorAll(".arch-tab-btn").forEach(function (b) { b.classList.remove("active"); });
+        document.querySelectorAll(".arch-panel").forEach(function (p) { p.classList.remove("active"); });
+        btn.classList.add("active");
+        document.getElementById("arch-" + btn.getAttribute("data-tab")).classList.add("active");
+      });
+    });
   }
 
-  // ── DOM HELPERS ────────────────────────────────────
+  // ── EVENT FILTER ───────────────────────────────────
+  function bindEventFilter() {
+    document.getElementById("filter-all").addEventListener("click", function () { setEventFilter("all"); });
+    document.getElementById("filter-exceptions").addEventListener("click", function () { setEventFilter("exceptions"); });
+  }
+  function setEventFilter(mode) {
+    eventFilterMode = mode;
+    document.getElementById("filter-all").className = "event-filter-btn" + (mode === "all" ? " active" : "");
+    document.getElementById("filter-exceptions").className = "event-filter-btn" + (mode === "exceptions" ? " active" : "");
+    renderEvents(lastEvents);
+  }
+
+  // ── DOM HELPERS (shared) ───────────────────────────
   function el(tag, opts) {
     var e = document.createElement(tag);
     if (opts) {
@@ -1179,7 +993,7 @@ body {
     return e;
   }
 
-  function append(parent /*, ...children */) {
+  function append(parent) {
     for (var i = 1; i < arguments.length; i++) {
       if (arguments[i]) parent.appendChild(arguments[i]);
     }
@@ -1192,388 +1006,55 @@ body {
     return e;
   }
 
-  // ── CHAIN ALERT (exception-only) ───────────────────
-  function renderChainAlert(hive) {
-    var alertEl = document.getElementById("chain-alert");
-    if (!hive) {
-      alertEl.style.display = "none";
-      return;
-    }
-    if (hive.chain_ok === false) {
-      alertEl.style.display = "block";
-      alertEl.className = "chain-alert";
-      alertEl.textContent = "\u26A0 CHAIN INTEGRITY FAILURE \u2014 " +
-        ((hive.chain_length || 0).toLocaleString()) +
-        " events, verification failed";
-    } else if (hive.chain_ok == null) {
-      alertEl.style.display = "block";
-      alertEl.className = "chain-alert chain-alert-unknown";
-      alertEl.textContent = "Chain integrity unknown \u2014 not yet verified";
-    } else {
-      alertEl.style.display = "none";
-    }
+  // Arch-specific DOM helpers
+  function statusDotEl(status) { return el("span", { cls: "dot dot-" + (status || "missing") }); }
+
+  function statusBadgeEl(status) {
+    return el("span", { cls: "status-badge status-" + (status || "missing"), text: status || "missing" });
   }
 
-  // ── PHASES ────────────────────────────────────────
-  function renderPhases(phases, agents) {
-    var container = clearEl("phase-timeline");
-
-    if (!phases.length) {
-      container.appendChild(el("div", { cls: "data-empty", text: "Awaiting telemetry data\u2026" }));
-      return;
-    }
-
-    // Build set of live agent roles (lowercase)
-    var liveRoles = {};
-    agents.forEach(function (a) {
-      var role = (a.role || "").toLowerCase();
-      var state = (a.state || "").toLowerCase();
-      if (role && state !== "retired") liveRoles[role] = true;
-    });
-
-    phases.forEach(function (p) {
-      var status = p.status || "blocked";
-      var item   = el("div", { cls: "phase-item " + status });
-
-      var dot    = el("div", { cls: "phase-dot" });
-      dot.appendChild(el("span", { cls: "phase-num", text: p.phase }));
-      item.appendChild(dot);
-
-      var info   = el("div", { cls: "phase-info" });
-      var name   = el("div", { cls: "phase-name", text: p.label || "Phase " + p.phase });
-      name.title = p.label || "";
-      info.appendChild(name);
-
-      var ts = "";
-      if (status === "complete"    && p.completed_at) ts = fmtDate(p.completed_at);
-      if (status === "in_progress" && p.started_at)   ts = "since " + fmtDate(p.started_at);
-      if (ts) info.appendChild(el("div", { cls: "phase-ts", text: ts }));
-
-      var badge = el("span", { cls: "phase-status-badge " + status, text: status.replace("_", " ") });
-      info.appendChild(badge);
-
-      // Live agent dots for phases with known agents
-      var phaseAgents = PHASE_AGENTS[p.phase];
-      if (phaseAgents && (status === "complete" || status === "in_progress")) {
-        var dotsRow = el("div", { cls: "phase-agent-dots" });
-        phaseAgents.forEach(function (role) {
-          var dotCls = liveRoles[role] ? "alive" : "missing";
-          var agDot = el("div", { cls: "phase-agent-dot " + dotCls, title: role });
-          dotsRow.appendChild(agDot);
-        });
-        info.appendChild(dotsRow);
-      }
-
-      item.appendChild(info);
-      container.appendChild(item);
-    });
+  function tierBadgeEl(tier) {
+    return el("span", { cls: "tier-badge tier-badge-" + (tier || "?"), text: "Tier " + (tier || "?") });
   }
 
-  // ── AGENTS ────────────────────────────────────────
-  function renderAgents(agents) {
-    var grid  = clearEl("agent-grid");
-    var count = document.getElementById("agent-count");
-
-    if (!agents.length) {
-      grid.appendChild(el("div", { cls: "data-empty", text: "No agent data \u2014 hive may be offline" }));
-      count.textContent = "";
-      return;
-    }
-
-    count.textContent = agents.length + " agent" + (agents.length !== 1 ? "s" : "");
-
-    // Compute total cost for top-spender detection
-    var totalCost = 0;
-    agents.forEach(function (a) { totalCost += (a.cost_usd || 0); });
-
-    var sorted = agents.slice().sort(function (a, b) {
-      var ae = a.errors || 0, be = b.errors || 0;
-      if (ae !== be) return be - ae;
-      return (a.role || "").localeCompare(b.role || "");
-    });
-
-    sorted.forEach(function (a) {
-      grid.appendChild(buildAgentCard(a, totalCost));
-    });
+  function crossLink(text, dataAttr, dataVal) {
+    var a = el("span", { cls: "cross-link", text: text });
+    a.setAttribute(dataAttr, dataVal);
+    return a;
   }
 
-  function buildAgentCard(a, totalCost) {
-    var state      = (a.state || "unknown").toLowerCase();
-    var model      = shortModel(a.model || "");
-    var iter       = a.iteration || 0;
-    var maxIter    = a.max_iterations || 1;
-    var pct        = Math.min(100, Math.round((iter / maxIter) * 100));
-    var fillCls    = pct >= 90 ? "danger" : pct >= 70 ? "warn" : "";
-    var cost       = a.cost_usd || 0;
-    var costStr    = fmtCost(cost);
-    var errors     = a.errors || 0;
-    var hasErrors  = errors > 0;
-    var lastEvType = a.last_event_type || "";
-    var lastEvAt   = a.last_event_at || "";
-    var isHotCost  = totalCost > 0 && cost > totalCost * 0.5;
-
-    var card = el("div", { cls: "agent-card" + (hasErrors ? " has-errors" : "") });
-
-    // Head — role name with actor_id on mouseover (change #1)
-    var head = el("div", { cls: "agent-card-head" });
-    // Head click opens task pane; body click toggles expand
-    if (a.actor_id) {
-      head.addEventListener("click", function (e) {
-        e.stopPropagation();
-        openTaskPane(a.role, a.actor_id, card, a);
-      });
-    }
-    card.addEventListener("click", function () { card.classList.toggle("expanded"); });
-    var roleEl = el("span", { cls: "agent-role", text: a.role || "unknown" });
-    if (a.actor_id) roleEl.title = a.actor_id;
-    head.appendChild(roleEl);
-    head.appendChild(el("span", { cls: "badge badge-" + state, text: a.state || "Unknown" }));
-    if (model) head.appendChild(el("span", { cls: "badge badge-model", text: model }));
-    card.appendChild(head);
-
-    // Body
-    var body = el("div", { cls: "agent-card-body" });
-
-    // Iter row with progress bar and burn rate (change #6)
-    var iterRow = el("div", { cls: "agent-row" });
-    iterRow.appendChild(el("span", { cls: "agent-label", text: "Iter" }));
-    var bar  = el("div", { cls: "progress-bar" });
-    var fill = el("div", { cls: "progress-fill " + fillCls });
-    fill.style.width = pct + "%";
-    bar.appendChild(fill);
-    iterRow.appendChild(bar);
-
-    var iterText = iter + "/" + maxIter;
-    var iterValEl = el("span", { cls: "agent-val", text: iterText });
-    iterRow.appendChild(iterValEl);
-
-    // Burn rate — color by current budget consumption percentage
-    if (iter > 0 && a.started_at) {
-      var elapsedMin = (Date.now() - new Date(a.started_at).getTime()) / 60000;
-      if (elapsedMin > 0.5) {
-        var burnRate = iter / elapsedMin;
-        var burnCls = pct > 80 ? "burn-danger" : pct > 50 ? "burn-warn" : "burn-ok";
-        var burnEl = el("span", { cls: "burn-rate " + burnCls, text: "(" + burnRate.toFixed(1) + "/min)" });
-        iterRow.appendChild(burnEl);
-      }
-    }
-    body.appendChild(iterRow);
-
-    // Cost row — bold, with hot-spender indicator (change #7)
-    var costRow = el("div", { cls: "agent-row" });
-    costRow.appendChild(el("span", { cls: "agent-label", text: "Est. Cost", title: "Estimated at API rates" }));
-    var costValCls = "agent-val bold" + (isHotCost ? " cost-hot" : "");
-    var costText = costStr;
-    if (isHotCost && totalCost > 0) {
-      costText += " (" + Math.round((cost / totalCost) * 100) + "%)";
-    }
-    costRow.appendChild(el("span", { cls: costValCls, text: costText }));
-
-    var spacer = el("span"); spacer.style.flex = "1";
-    costRow.appendChild(spacer);
-
-    // Trust score — horizontal bar when available (change #8)
-    costRow.appendChild(el("span", { cls: "agent-label", text: "Trust" }));
-    if (a.trust_score != null) {
-      var trustVal = Number(a.trust_score);
-      var trustPct = Math.min(100, Math.round(trustVal * 100));
-      var trustCls = trustVal < 0.2 ? "trust-low" : trustVal < 0.5 ? "trust-mid" : "trust-high";
-      var trustWrap = el("span", { cls: "trust-bar-wrap", title: "Trust: " + trustVal.toFixed(3) });
-      var trustFill = el("span", { cls: "trust-bar-fill " + trustCls });
-      trustFill.style.width = trustPct + "%";
-      trustWrap.appendChild(trustFill);
-      costRow.appendChild(trustWrap);
-    } else {
-      costRow.appendChild(el("span", { cls: "agent-val", text: "\u2014" }));
-    }
-    body.appendChild(costRow);
-
-    // Last event row — use last_event_at with event type (change #3)
-    var evTime = lastEvAt ? relTime(lastEvAt) : "";
-    if (lastEvType || evTime) {
-      var evRow = el("div", { cls: "agent-event" });
-      if (lastEvType) {
-        evRow.appendChild(el("span", { cls: "event-type-pill " + evtClass(lastEvType), text: lastEvType }));
-      }
-      if (evTime) {
-        var dim = el("span", { text: "\u2014 " + evTime });
-        dim.style.color = "var(--text-dim)";
-        evRow.appendChild(dim);
-      }
-      if (hasErrors) {
-        var errSpan = el("span", { text: errors + " err" });
-        errSpan.style.cssText = "color:var(--red);margin-left:auto";
-        evRow.appendChild(errSpan);
-      }
-      body.appendChild(evRow);
-    }
-
-    card.appendChild(body);
-
-    // Expand section — no visible GUID (change #1)
-    var expand = el("div", { cls: "agent-expand" });
-
-    expand.appendChild(el("div", { cls: "expand-label", text: "Last Message" }));
-    expand.appendChild(el("pre", { cls: "last-message", text: a.last_message || "(no message recorded)" }));
-
-    var meta = el("div", { cls: "expand-meta" });
-
-    var tokItem = el("div", { cls: "expand-meta-item" });
-    tokItem.appendChild(document.createTextNode("Tokens "));
-    tokItem.appendChild(el("strong", { text: (a.tokens_used || 0).toLocaleString() }));
-    meta.appendChild(tokItem);
-
-    var errItem = el("div", { cls: "expand-meta-item" });
-    errItem.appendChild(document.createTextNode("Errors "));
-    var errStrong = el("strong", { text: errors });
-    errStrong.style.color = hasErrors ? "var(--red)" : "var(--text)";
-    errItem.appendChild(errStrong);
-    meta.appendChild(errItem);
-
-    expand.appendChild(meta);
-    card.appendChild(expand);
-    return card;
+  function makeRow(label, valNode) {
+    var row = el("div", { cls: "p-row" });
+    row.appendChild(el("span", { cls: "p-label", text: label }));
+    var val = el("span", { cls: "p-val" });
+    if (typeof valNode === "string") val.textContent = valNode;
+    else if (valNode) val.appendChild(valNode);
+    row.appendChild(val);
+    return row;
   }
 
-  // ── HIVE HEALTH ────────────────────────────────────
-  function renderHive(hive, agents) {
-    var grid = clearEl("hive-grid");
-
-    if (!hive) {
-      grid.appendChild(el("div", { cls: "data-empty", text: "Awaiting telemetry data\u2026" }));
-      return;
-    }
-
-    // Agents card
-    grid.appendChild(buildHiveCard("Agents", function (card) {
-      var valEl = el("div", { cls: "hive-card-val", text: hive.active_agents != null ? hive.active_agents : "\u2014" });
-      var sub   = el("span", { cls: "hive-card-val-sub", text: " / " + (hive.total_actors != null ? hive.total_actors : "\u2014") });
-      valEl.appendChild(sub);
-      card.appendChild(valEl);
-      card.appendChild(el("div", { cls: "hive-card-sub", text: "active / total" }));
-    }));
-
-    // Event rate card
-    grid.appendChild(buildHiveCard("Event Rate", function (card) {
-      var rate = hive.event_rate != null ? hive.event_rate + "/min" : "\u2014";
-      card.appendChild(el("div", { cls: "hive-card-val", text: rate }));
-      card.appendChild(el("div", { cls: "hive-card-sub", text: "events / min" }));
-    }));
-
-    // Daily cost card (change #9 — handle null cap)
-    grid.appendChild(buildHiveCard("Est. Cost", function (card) {
-      card.firstChild.title = "Estimated at API rates";
-      if (hive.daily_cost != null) {
-        card.appendChild(el("div", { cls: "hive-card-val", text: fmtCost(hive.daily_cost) }));
-        if (hive.daily_cap != null && hive.daily_cap > 0) {
-          var pct     = Math.min(100, Math.round((hive.daily_cost / hive.daily_cap) * 100));
-          var fillCls = pct >= 90 ? "danger" : pct >= 70 ? "warn" : "";
-          var barWrap = el("div", { cls: "progress-bar" });
-          barWrap.style.cssText = "margin:0.375rem 0 0.25rem";
-          var costFill = el("div", { cls: "progress-fill " + fillCls });
-          costFill.style.width = pct + "%";
-          barWrap.appendChild(costFill);
-          card.appendChild(barWrap);
-          card.appendChild(el("div", { cls: "hive-card-sub",
-            text: pct + "% of " + fmtCost(hive.daily_cap) + " cap" }));
-        } else {
-          card.appendChild(el("div", { cls: "hive-card-sub", text: "no cap set" }));
-        }
-      } else {
-        card.appendChild(el("div", { cls: "hive-card-val", text: "\u2014" }));
-        card.appendChild(el("div", { cls: "hive-card-sub", text: "no data" }));
-      }
-    }));
-
-    // Top spender card (change #7)
-    if (agents.length > 0) {
-      var topAgent = agents.slice().sort(function (a, b) {
-        return (b.cost_usd || 0) - (a.cost_usd || 0);
-      })[0];
-      if (topAgent && (topAgent.cost_usd || 0) > 0) {
-        var totalCost = 0;
-        agents.forEach(function (a) { totalCost += (a.cost_usd || 0); });
-        var topPct = totalCost > 0 ? Math.round(((topAgent.cost_usd || 0) / totalCost) * 100) : 0;
-        grid.appendChild(buildHiveCard("Top Spender", function (card) {
-          var valEl = el("div", { cls: "hive-card-val", text: topAgent.role || "unknown" });
-          valEl.style.textTransform = "capitalize";
-          card.appendChild(valEl);
-          card.appendChild(el("div", { cls: "hive-card-sub",
-            text: fmtCost(topAgent.cost_usd) + " (" + topPct + "%)" }));
-        }));
-      }
-    }
-
-    // Severity card
-    grid.appendChild(buildHiveCard("Severity", function (card) {
-      var sev     = (hive.severity || "ok").toLowerCase();
-      var sevCls  = sev === "ok" ? "severity-ok" : sev === "warning" ? "severity-warning" : "severity-critical";
-      card.appendChild(el("span", { cls: "severity-badge " + sevCls, text: sev }));
-    }));
+  function makeSection(title, children) {
+    var sec = el("div", { cls: "p-section" });
+    sec.appendChild(el("div", { cls: "p-section-title", text: title }));
+    if (Array.isArray(children)) children.forEach(function (c) { if (c) sec.appendChild(c); });
+    else if (children) sec.appendChild(children);
+    return sec;
   }
 
-  function buildHiveCard(label, fillFn) {
-    var card = el("div", { cls: "hive-card" });
-    card.appendChild(el("div", { cls: "hive-card-label", text: label }));
-    fillFn(card);
-    return card;
+  function makeTable(headers, rows) {
+    var table = el("table");
+    var thead = el("thead");
+    var headRow = el("tr");
+    headers.forEach(function (h) { headRow.appendChild(el("th", { text: h })); });
+    thead.appendChild(headRow);
+    table.appendChild(thead);
+    var tbody = el("tbody");
+    rows.forEach(function (r) { tbody.appendChild(r); });
+    table.appendChild(tbody);
+    return table;
   }
 
-  // ── EVENT STREAM ───────────────────────────────────
-  function onStreamScroll() {
-    var el2 = document.getElementById("event-stream");
-    isUserScrolled = el2.scrollTop > 40;
-  }
-  window.onStreamScroll = onStreamScroll;
-
-  function isNoiseEvent(type) {
-    for (var i = 0; i < NOISE_TYPES.length; i++) {
-      if (type === NOISE_TYPES[i]) return true;
-    }
-    return false;
-  }
-
-  function renderEvents(events) {
-    var container = clearEl("event-stream");
-    var count     = document.getElementById("event-count");
-
-    // Apply filter (change #5)
-    var filtered = events;
-    if (eventFilterMode === "exceptions") {
-      filtered = events.filter(function (ev) {
-        return !isNoiseEvent(ev.event_type || "");
-      });
-    }
-
-    if (!filtered.length) {
-      var msg = events.length > 0 ? "All events filtered (switch to All Events)" : "No recent events";
-      container.appendChild(el("div", { cls: "data-empty", text: msg }));
-      count.textContent = filtered.length + "/" + events.length;
-      return;
-    }
-
-    count.textContent = filtered.length + "/" + events.length + " event" + (filtered.length !== 1 ? "s" : "");
-
-    filtered.forEach(function (ev) {
-      var row = el("div", { cls: "event-row" });
-
-      row.appendChild(el("span", { cls: "event-ts",    text: ev.at ? relTime(ev.at) : "\u2014" }));
-      row.appendChild(el("span", { cls: "event-actor", text: ev.actor_role || "\u2014" }));
-
-      var evType = ev.event_type || "";
-      row.appendChild(el("span", { cls: "event-type " + evtClass(evType), text: evType || "\u2014" }));
-
-      var summary = el("span", { cls: "event-summary", text: ev.summary || "" });
-      if (ev.summary) summary.title = ev.summary;
-      row.appendChild(summary);
-
-      container.appendChild(row);
-    });
-
-    if (!isUserScrolled) container.scrollTop = 0;
-  }
-
-  // ── FORMATTERS ─────────────────────────────────────
+  // ── FORMATTERS (shared) ────────────────────────────
   function shortModel(m) {
     if (!m) return "";
     if (m.indexOf("haiku")  !== -1) return "haiku";
@@ -1582,160 +1063,810 @@ body {
     return m.split("-").slice(0, 2).join("-");
   }
 
-  function fmtCost(v) {
-    if (v == null) return "\u2014";
-    return "$" + Number(v).toFixed(3);
-  }
+  function fmtCost(v) { return v == null ? "\u2014" : "$" + Number(v).toFixed(3); }
 
   function fmtDate(iso) {
     if (!iso) return "";
-    try {
-      return new Date(iso).toLocaleDateString(undefined,
-        { month: "short", day: "numeric", year: "numeric" });
-    } catch (e) { return iso; }
+    try { return new Date(iso).toLocaleDateString(undefined, { month: "short", day: "numeric", year: "numeric" }); }
+    catch (e) { return iso; }
   }
 
   function relTime(iso) {
     if (!iso) return "";
     try {
       var secs = Math.floor((Date.now() - new Date(iso).getTime()) / 1000);
-      if (secs <  5)    return "just now";
+      if (secs < 5)     return "just now";
       if (secs < 60)    return secs + "s ago";
-      if (secs < 3600)  return Math.floor(secs / 60)   + "m ago";
-      if (secs < 86400) return Math.floor(secs / 3600)  + "h ago";
+      if (secs < 3600)  return Math.floor(secs / 60)  + "m ago";
+      if (secs < 86400) return Math.floor(secs / 3600) + "h ago";
       return Math.floor(secs / 86400) + "d ago";
     } catch (e) { return iso; }
   }
 
   function evtClass(type) {
-    if (!type)                                return "evt-default";
-    if (type.indexOf("health.")        === 0) return "evt-health";
-    if (type.indexOf("agent.budget.")  === 0) return "evt-budget";
-    if (type.indexOf("work.task.")     === 0) return "evt-work";
-    if (type.indexOf("agent.state.")   === 0) return "evt-state";
-    if (type.indexOf("hive.")          === 0) return "evt-hive";
+    if (!type) return "evt-default";
+    if (type.indexOf("health.")       === 0) return "evt-health";
+    if (type.indexOf("agent.budget.") === 0) return "evt-budget";
+    if (type.indexOf("work.task.")    === 0) return "evt-work";
+    if (type.indexOf("agent.state.")  === 0) return "evt-state";
+    if (type.indexOf("hive.")         === 0) return "evt-hive";
     return "evt-default";
   }
 
-  // ── TASK PANE ──────────────────────────────────────
-  var taskPaneActorId = null;
-  var taskController  = null;
-  var selectedCard    = null;
-  var taskPaneAgent   = null;
-
-  document.getElementById("task-pane-close").addEventListener("click", closeTaskPane);
-
-  function openTaskPane(role, actorId, cardEl, agent) {
-    if (taskPaneActorId === actorId) {
-      closeTaskPane();
-      return;
-    }
-    if (selectedCard) selectedCard.classList.remove("selected");
-    selectedCard = cardEl;
-    cardEl.classList.add("selected");
-    taskPaneActorId = actorId;
-    taskPaneAgent = agent || null;
-
-    document.getElementById("task-pane-title").textContent = role + " — Tasks";
-    document.getElementById("task-pane").classList.add("open");
-    document.getElementById("dashboard").classList.add("pane-open");
-    fetchTasks(actorId);
+  // ── CONNECTION ─────────────────────────────────────
+  function setConnStatus(state, text) {
+    if (state === _connState) return;
+    _connState = state;
+    document.getElementById("conn-dot").className = "conn-dot " + state;
+    document.getElementById("conn-status").className = "conn-status " + (state === "connected" ? "" : state);
+    document.getElementById("conn-text").textContent = text;
   }
 
-  function closeTaskPane() {
-    taskPaneActorId = null;
-    if (selectedCard) selectedCard.classList.remove("selected");
-    selectedCard = null;
-    document.getElementById("task-pane").classList.remove("open");
-    document.getElementById("dashboard").classList.remove("pane-open");
+  function tickClock() {
+    var e = document.getElementById("topbar-time");
+    if (e) e.textContent = new Date().toLocaleTimeString();
   }
 
-  function fetchTasks(actorId) {
-    var body = document.getElementById("task-pane-body");
-    clearEl("task-pane-body");
-    body.appendChild(el("div", { cls: "task-pane-empty", text: "Loading\u2026" }));
+  function makeFetchOpts(controller) {
+    var opts = { signal: controller.signal };
+    if (USE_COOKIE_AUTH) { opts.credentials = "same-origin"; }
+    else { opts.headers = { Authorization: "Bearer " + API_KEY }; }
+    return opts;
+  }
 
-    if (taskController) taskController.abort();
-    taskController = new AbortController();
+  // ═══════════════════════════════════════════════════
+  // OPS: FETCH & RENDER
+  // ═══════════════════════════════════════════════════
+  function refreshOps() {
+    if (pollController) pollController.abort();
+    pollController = new AbortController();
 
-    var opts = { signal: taskController.signal };
-    if (USE_COOKIE_AUTH) {
-      opts.credentials = "same-origin";
-    } else {
-      opts.headers = { Authorization: "Bearer " + API_KEY };
-    }
-
-    fetch(API_BASE + "/tasks?assignee=" + encodeURIComponent(actorId), opts)
+    fetch(API_BASE + "/telemetry/status", makeFetchOpts(pollController))
     .then(function (res) {
+      if (res.status === 503) { setConnStatus("stale", "Telemetry not initialized"); return null; }
       if (!res.ok) throw new Error("HTTP " + res.status);
       return res.json();
     })
     .then(function (data) {
-      var tasks = data.tasks || data || [];
-      if (!Array.isArray(tasks)) tasks = [];
+      if (!data) return;
+      lastSuccess = Date.now();
+      opsConsecutiveFails = 0;
+      setConnStatus("connected", "Live");
+      opsData = data;
+      opsLastFetch = Date.now();
+      lastAgents = data.agents || [];
+      lastEvents = data.recent_events || [];
+      renderOpsPhases(data.phases || [], lastAgents);
+      renderAgents(lastAgents);
+      renderHive(data.hive || null, lastAgents);
+      renderChainAlert(data.hive || null);
+      renderEvents(lastEvents);
+    })
+    .catch(function (err) {
+      if (err.name === "AbortError") return;
+      opsConsecutiveFails++;
+      if (opsConsecutiveFails < 3) setConnStatus("stale", "Retrying\u2026");
+      else setConnStatus("error", err.message && err.message.indexOf("fetch") !== -1 ? "Cannot reach API" : "Connection lost");
+    });
+  }
+
+  // ── OPS: Chain Alert ───────────────────────────────
+  function renderChainAlert(hive) {
+    var alertEl = document.getElementById("chain-alert");
+    if (!hive) { alertEl.style.display = "none"; return; }
+    if (hive.chain_ok === false) {
+      alertEl.style.display = "block"; alertEl.className = "chain-alert";
+      alertEl.textContent = "\u26A0 CHAIN INTEGRITY FAILURE \u2014 " + ((hive.chain_length || 0).toLocaleString()) + " events, verification failed";
+    } else if (hive.chain_ok == null) {
+      alertEl.style.display = "block"; alertEl.className = "chain-alert chain-alert-unknown";
+      alertEl.textContent = "Chain integrity unknown \u2014 not yet verified";
+    } else { alertEl.style.display = "none"; }
+  }
+
+  // ── OPS: Phases ────────────────────────────────────
+  function renderOpsPhases(phases, agents) {
+    var container = clearEl("ops-phase-timeline");
+    if (!phases.length) { container.appendChild(el("div", { cls: "data-empty", text: "Awaiting telemetry data\u2026" })); return; }
+    var liveRoles = {};
+    agents.forEach(function (a) {
+      var role = (a.role || "").toLowerCase();
+      var state = (a.state || "").toLowerCase();
+      if (role && state !== "retired") liveRoles[role] = true;
+    });
+    phases.forEach(function (p) {
+      var status = p.status || "blocked";
+      var item = el("div", { cls: "ops-phase-item " + status });
+      var dot = el("div", { cls: "ops-phase-dot" });
+      dot.appendChild(el("span", { cls: "ops-phase-num", text: p.phase }));
+      item.appendChild(dot);
+      var info = el("div", { cls: "ops-phase-info" });
+      var name = el("div", { cls: "ops-phase-name", text: p.label || "Phase " + p.phase, title: p.label || "" });
+      info.appendChild(name);
+      var ts = "";
+      if (status === "complete" && p.completed_at) ts = fmtDate(p.completed_at);
+      if (status === "in_progress" && p.started_at) ts = "since " + fmtDate(p.started_at);
+      if (ts) info.appendChild(el("div", { cls: "ops-phase-ts", text: ts }));
+      info.appendChild(el("span", { cls: "phase-status-badge " + status, text: status.replace("_", " ") }));
+      var phaseAgents = PHASE_AGENTS[p.phase];
+      if (phaseAgents && (status === "complete" || status === "in_progress")) {
+        var dotsRow = el("div", { cls: "phase-agent-dots" });
+        phaseAgents.forEach(function (role) {
+          dotsRow.appendChild(el("div", { cls: "phase-agent-dot " + (liveRoles[role] ? "alive" : "missing"), title: role }));
+        });
+        info.appendChild(dotsRow);
+      }
+      item.appendChild(info);
+      container.appendChild(item);
+    });
+  }
+
+  // ── OPS: Agents ────────────────────────────────────
+  function renderAgents(agents) {
+    var grid = clearEl("agent-grid");
+    var count = document.getElementById("agent-count");
+    if (!agents.length) {
+      grid.appendChild(el("div", { cls: "data-empty", text: "No agent data \u2014 hive may be offline" }));
+      count.textContent = ""; return;
+    }
+    count.textContent = agents.length + " agent" + (agents.length !== 1 ? "s" : "");
+    var totalCost = 0;
+    agents.forEach(function (a) { totalCost += (a.cost_usd || 0); });
+    var sorted = agents.slice().sort(function (a, b) {
+      var ae = a.errors || 0, be = b.errors || 0;
+      if (ae !== be) return be - ae;
+      return (a.role || "").localeCompare(b.role || "");
+    });
+    sorted.forEach(function (a) { grid.appendChild(buildAgentCard(a, totalCost)); });
+  }
+
+  function buildAgentCard(a, totalCost) {
+    var state = (a.state || "unknown").toLowerCase();
+    var model = shortModel(a.model || "");
+    var iter = a.iteration || 0, maxIter = a.max_iterations || 1;
+    var pct = Math.min(100, Math.round((iter / maxIter) * 100));
+    var fillCls = pct >= 90 ? "danger" : pct >= 70 ? "warn" : "";
+    var cost = a.cost_usd || 0, costStr = fmtCost(cost);
+    var errors = a.errors || 0, hasErrors = errors > 0;
+    var lastEvType = a.last_event_type || "", lastEvAt = a.last_event_at || "";
+    var isHotCost = totalCost > 0 && cost > totalCost * 0.5;
+
+    var card = el("div", { cls: "agent-card" + (hasErrors ? " has-errors" : "") });
+    var head = el("div", { cls: "agent-card-head" });
+    if (a.actor_id) head.addEventListener("click", function (e) { e.stopPropagation(); openTaskPane(a.role, a.actor_id, card, a); });
+    card.addEventListener("click", function () { card.classList.toggle("expanded"); });
+    var roleEl = el("span", { cls: "agent-role", text: a.role || "unknown" });
+    if (a.actor_id) roleEl.title = a.actor_id;
+    append(head, roleEl, el("span", { cls: "badge badge-" + state, text: a.state || "Unknown" }));
+    if (model) head.appendChild(el("span", { cls: "badge badge-model", text: model }));
+    card.appendChild(head);
+
+    var body = el("div", { cls: "agent-card-body" });
+    var iterRow = el("div", { cls: "agent-row" });
+    iterRow.appendChild(el("span", { cls: "agent-label", text: "Iter" }));
+    var bar = el("div", { cls: "progress-bar" });
+    var fill = el("div", { cls: "progress-fill " + fillCls }); fill.style.width = pct + "%";
+    bar.appendChild(fill); iterRow.appendChild(bar);
+    iterRow.appendChild(el("span", { cls: "agent-val", text: iter + "/" + maxIter }));
+    if (iter > 0 && a.started_at) {
+      var elapsedMin = (Date.now() - new Date(a.started_at).getTime()) / 60000;
+      if (elapsedMin > 0.5) {
+        var burnRate = iter / elapsedMin;
+        var burnCls = pct > 80 ? "burn-danger" : pct > 50 ? "burn-warn" : "burn-ok";
+        iterRow.appendChild(el("span", { cls: "burn-rate " + burnCls, text: "(" + burnRate.toFixed(1) + "/min)" }));
+      }
+    }
+    body.appendChild(iterRow);
+
+    var costRow = el("div", { cls: "agent-row" });
+    costRow.appendChild(el("span", { cls: "agent-label", text: "Est. Cost", title: "Estimated at API rates" }));
+    var costText = costStr;
+    if (isHotCost && totalCost > 0) costText += " (" + Math.round((cost / totalCost) * 100) + "%)";
+    costRow.appendChild(el("span", { cls: "agent-val bold" + (isHotCost ? " cost-hot" : ""), text: costText }));
+    var spacer = el("span"); spacer.style.flex = "1"; costRow.appendChild(spacer);
+    costRow.appendChild(el("span", { cls: "agent-label", text: "Trust" }));
+    if (a.trust_score != null) {
+      var trustVal = Number(a.trust_score);
+      var trustPct = Math.min(100, Math.round(trustVal * 100));
+      var trustCls = trustVal < 0.2 ? "trust-low" : trustVal < 0.5 ? "trust-mid" : "trust-high";
+      var trustWrap = el("span", { cls: "trust-bar-wrap", title: "Trust: " + trustVal.toFixed(3) });
+      var trustFill = el("span", { cls: "trust-bar-fill " + trustCls }); trustFill.style.width = trustPct + "%";
+      trustWrap.appendChild(trustFill); costRow.appendChild(trustWrap);
+    } else { costRow.appendChild(el("span", { cls: "agent-val", text: "\u2014" })); }
+    body.appendChild(costRow);
+
+    var evTime = lastEvAt ? relTime(lastEvAt) : "";
+    if (lastEvType || evTime) {
+      var evRow = el("div", { cls: "agent-event" });
+      if (lastEvType) evRow.appendChild(el("span", { cls: "event-type-pill " + evtClass(lastEvType), text: lastEvType }));
+      if (evTime) { var dim = el("span", { text: "\u2014 " + evTime }); dim.style.color = "var(--text-dim)"; evRow.appendChild(dim); }
+      if (hasErrors) { var errSpan = el("span", { text: errors + " err" }); errSpan.style.cssText = "color:var(--red);margin-left:auto"; evRow.appendChild(errSpan); }
+      body.appendChild(evRow);
+    }
+    card.appendChild(body);
+
+    var expand = el("div", { cls: "agent-expand" });
+    expand.appendChild(el("div", { cls: "expand-label", text: "Last Message" }));
+    expand.appendChild(el("pre", { cls: "last-message", text: a.last_message || "(no message recorded)" }));
+    var meta = el("div", { cls: "expand-meta" });
+    var tokItem = el("div", { cls: "expand-meta-item" }); tokItem.appendChild(document.createTextNode("Tokens ")); tokItem.appendChild(el("strong", { text: (a.tokens_used || 0).toLocaleString() })); meta.appendChild(tokItem);
+    var errItem = el("div", { cls: "expand-meta-item" }); errItem.appendChild(document.createTextNode("Errors ")); var errStrong = el("strong", { text: errors }); errStrong.style.color = hasErrors ? "var(--red)" : "var(--text)"; errItem.appendChild(errStrong); meta.appendChild(errItem);
+    expand.appendChild(meta); card.appendChild(expand);
+    return card;
+  }
+
+  // ── OPS: Hive Health ───────────────────────────────
+  function renderHive(hive, agents) {
+    var grid = clearEl("hive-grid");
+    if (!hive) { grid.appendChild(el("div", { cls: "data-empty", text: "Awaiting telemetry data\u2026" })); return; }
+    function hiveCard(label, fn) { var c = el("div", { cls: "hive-card" }); c.appendChild(el("div", { cls: "hive-card-label", text: label })); fn(c); return c; }
+    grid.appendChild(hiveCard("Agents", function (c) {
+      var v = el("div", { cls: "hive-card-val", text: hive.active_agents != null ? hive.active_agents : "\u2014" });
+      v.appendChild(el("span", { cls: "hive-card-val-sub", text: " / " + (hive.total_actors != null ? hive.total_actors : "\u2014") }));
+      c.appendChild(v); c.appendChild(el("div", { cls: "hive-card-sub", text: "active / total" }));
+    }));
+    grid.appendChild(hiveCard("Event Rate", function (c) {
+      c.appendChild(el("div", { cls: "hive-card-val", text: hive.event_rate != null ? hive.event_rate + "/min" : "\u2014" }));
+      c.appendChild(el("div", { cls: "hive-card-sub", text: "events / min" }));
+    }));
+    grid.appendChild(hiveCard("Est. Cost", function (c) {
+      c.firstChild.title = "Estimated at API rates";
+      if (hive.daily_cost != null) {
+        c.appendChild(el("div", { cls: "hive-card-val", text: fmtCost(hive.daily_cost) }));
+        if (hive.daily_cap != null && hive.daily_cap > 0) {
+          var pct = Math.min(100, Math.round((hive.daily_cost / hive.daily_cap) * 100));
+          var fc = pct >= 90 ? "danger" : pct >= 70 ? "warn" : "";
+          var bw = el("div", { cls: "progress-bar" }); bw.style.cssText = "margin:0.375rem 0 0.25rem";
+          var cf = el("div", { cls: "progress-fill " + fc }); cf.style.width = pct + "%";
+          bw.appendChild(cf); c.appendChild(bw);
+          c.appendChild(el("div", { cls: "hive-card-sub", text: pct + "% of " + fmtCost(hive.daily_cap) + " cap" }));
+        } else { c.appendChild(el("div", { cls: "hive-card-sub", text: "no cap set" })); }
+      } else { c.appendChild(el("div", { cls: "hive-card-val", text: "\u2014" })); c.appendChild(el("div", { cls: "hive-card-sub", text: "no data" })); }
+    }));
+    if (agents.length > 0) {
+      var topAgent = agents.slice().sort(function (a, b) { return (b.cost_usd || 0) - (a.cost_usd || 0); })[0];
+      if (topAgent && (topAgent.cost_usd || 0) > 0) {
+        var tc = 0; agents.forEach(function (a) { tc += (a.cost_usd || 0); });
+        var tp = tc > 0 ? Math.round(((topAgent.cost_usd || 0) / tc) * 100) : 0;
+        grid.appendChild(hiveCard("Top Spender", function (c) {
+          var v = el("div", { cls: "hive-card-val", text: topAgent.role || "unknown" }); v.style.textTransform = "capitalize"; c.appendChild(v);
+          c.appendChild(el("div", { cls: "hive-card-sub", text: fmtCost(topAgent.cost_usd) + " (" + tp + "%)" }));
+        }));
+      }
+    }
+    grid.appendChild(hiveCard("Severity", function (c) {
+      var sev = (hive.severity || "ok").toLowerCase();
+      c.appendChild(el("span", { cls: "severity-badge severity-" + (sev === "ok" ? "ok" : sev === "warning" ? "warning" : "critical"), text: sev }));
+    }));
+  }
+
+  // ── OPS: Events ────────────────────────────────────
+  function renderEvents(events) {
+    var container = clearEl("event-stream");
+    var countEl = document.getElementById("event-count");
+    var filtered = events;
+    if (eventFilterMode === "exceptions") {
+      filtered = events.filter(function (ev) { for (var i = 0; i < NOISE_TYPES.length; i++) { if ((ev.event_type || "") === NOISE_TYPES[i]) return false; } return true; });
+    }
+    if (!filtered.length) {
+      container.appendChild(el("div", { cls: "data-empty", text: events.length > 0 ? "All events filtered (switch to All Events)" : "No recent events" }));
+      countEl.textContent = filtered.length + "/" + events.length; return;
+    }
+    countEl.textContent = filtered.length + "/" + events.length + " event" + (filtered.length !== 1 ? "s" : "");
+    filtered.forEach(function (ev) {
+      var row = el("div", { cls: "event-row" });
+      row.appendChild(el("span", { cls: "event-ts", text: ev.at ? relTime(ev.at) : "\u2014" }));
+      row.appendChild(el("span", { cls: "event-actor", text: ev.actor_role || "\u2014" }));
+      row.appendChild(el("span", { cls: "event-type " + evtClass(ev.event_type || ""), text: ev.event_type || "\u2014" }));
+      var summary = el("span", { cls: "event-summary", text: ev.summary || "", title: ev.summary || "" });
+      row.appendChild(summary);
+      container.appendChild(row);
+    });
+    if (!isUserScrolled) container.scrollTop = 0;
+  }
+  document.getElementById("event-stream").addEventListener("scroll", function () {
+    isUserScrolled = document.getElementById("event-stream").scrollTop > 40;
+  });
+
+  // ── OPS: Task Pane ─────────────────────────────────
+  var taskPaneActorId = null, taskController = null, selectedCard = null, taskPaneAgent = null;
+  function openTaskPane(role, actorId, cardEl, agent) {
+    if (taskPaneActorId === actorId) { closeTaskPane(); return; }
+    if (selectedCard) selectedCard.classList.remove("selected");
+    selectedCard = cardEl; cardEl.classList.add("selected");
+    taskPaneActorId = actorId; taskPaneAgent = agent || null;
+    document.getElementById("task-pane-title").textContent = role + " \u2014 Tasks";
+    document.getElementById("task-pane").classList.add("open");
+    document.getElementById("ops-main").classList.add("pane-open");
+    fetchTasks(actorId);
+  }
+  function closeTaskPane() {
+    taskPaneActorId = null;
+    if (selectedCard) selectedCard.classList.remove("selected"); selectedCard = null;
+    document.getElementById("task-pane").classList.remove("open");
+    document.getElementById("ops-main").classList.remove("pane-open");
+  }
+  function fetchTasks(actorId) {
+    var body = clearEl("task-pane-body");
+    body.appendChild(el("div", { cls: "task-pane-empty", text: "Loading\u2026" }));
+    if (taskController) taskController.abort();
+    taskController = new AbortController();
+    fetch(API_BASE + "/tasks?assignee=" + encodeURIComponent(actorId), makeFetchOpts(taskController))
+    .then(function (res) { if (!res.ok) throw new Error("HTTP " + res.status); return res.json(); })
+    .then(function (data) {
+      var tasks = data.tasks || data || []; if (!Array.isArray(tasks)) tasks = [];
       renderTaskPane(tasks);
     })
     .catch(function (err) {
       if (err.name === "AbortError") return;
-      clearEl("task-pane-body");
-      var msg = el("div", { cls: "task-pane-empty" });
-      msg.appendChild(document.createTextNode("Failed to load tasks. "));
+      var b = clearEl("task-pane-body");
+      var msg = el("div", { cls: "task-pane-empty" }); msg.appendChild(document.createTextNode("Failed to load tasks. "));
       var retry = el("button", { cls: "task-pane-retry", text: "Retry" });
       retry.addEventListener("click", function () { fetchTasks(actorId); });
-      msg.appendChild(retry);
-      body.appendChild(msg);
+      msg.appendChild(retry); b.appendChild(msg);
     });
   }
-
   function renderTaskPane(tasks) {
     var body = clearEl("task-pane-body");
-
-    // Agent activity — show last_message if available
     if (taskPaneAgent && taskPaneAgent.last_message) {
       var activity = el("div", { cls: "task-pane-activity" });
       activity.appendChild(el("div", { cls: "task-pane-activity-label", text: "Latest Activity" }));
       activity.appendChild(el("div", { cls: "task-pane-activity-text", text: taskPaneAgent.last_message }));
       body.appendChild(activity);
     }
-
     var titleEl = document.getElementById("task-pane-title");
-    var base = titleEl.textContent.replace(/ \(\d+\)$/, "");
-    titleEl.textContent = base + " (" + tasks.length + ")";
-
-    if (tasks.length === 0) {
-      body.appendChild(el("div", { cls: "task-pane-empty", text: "No tasks assigned" }));
-      return;
-    }
-
+    titleEl.textContent = titleEl.textContent.replace(/ \(\d+\)$/, "") + " (" + tasks.length + ")";
+    if (!tasks.length) { body.appendChild(el("div", { cls: "task-pane-empty", text: "No tasks assigned" })); return; }
     tasks.forEach(function (t) {
       var item = el("div", { cls: "task-item" });
       item.addEventListener("click", function () { item.classList.toggle("expanded"); });
-
       item.appendChild(el("div", { cls: "task-title", text: t.title || "Untitled" }));
-
       var meta = el("div", { cls: "task-meta" });
       var status = t.status || "pending";
-      meta.appendChild(el("span", {
-        cls: "task-badge task-badge-" + status,
-        text: status === "completed" ? "done" : status
-      }));
-      if (t.priority) {
-        meta.appendChild(el("span", {
-          cls: "task-badge task-badge-" + t.priority,
-          text: t.priority
-        }));
-      }
-      if (t.blocked) {
-        meta.appendChild(el("span", { cls: "task-badge task-badge-high", text: "blocked" }));
-      }
+      meta.appendChild(el("span", { cls: "task-badge task-badge-" + status, text: status === "completed" ? "done" : status }));
+      if (t.priority) meta.appendChild(el("span", { cls: "task-badge task-badge-" + t.priority, text: t.priority }));
+      if (t.blocked) meta.appendChild(el("span", { cls: "task-badge task-badge-high", text: "blocked" }));
       item.appendChild(meta);
-
-      if (t.description) {
-        item.appendChild(el("div", { cls: "task-desc", text: t.description }));
-      }
-
+      if (t.description) item.appendChild(el("div", { cls: "task-desc", text: t.description }));
       body.appendChild(item);
     });
+  }
+
+  // ═══════════════════════════════════════════════════
+  // ARCH: FETCH & RENDER
+  // ═══════════════════════════════════════════════════
+  function refreshArch() {
+    if (archPollController) archPollController.abort();
+    archPollController = new AbortController();
+
+    fetch(API_BASE + "/telemetry/overview", makeFetchOpts(archPollController))
+    .then(function (res) {
+      if (res.status === 503) { setConnStatus("stale", "Telemetry not initialized"); return null; }
+      if (!res.ok) throw new Error("HTTP " + res.status);
+      return res.json();
+    })
+    .then(function (data) {
+      if (!data) return;
+      lastSuccess = Date.now();
+      archConsecutiveFails = 0;
+      setConnStatus("connected", "Live");
+      archData = data;
+      archLastFetch = Date.now();
+      renderArchAll(data);
+      if (currentPanel) refreshArchPanel();
+    })
+    .catch(function (err) {
+      if (err.name === "AbortError") return;
+      archConsecutiveFails++;
+      if (archConsecutiveFails < 3) setConnStatus("stale", "Retrying\u2026");
+      else setConnStatus("error", "Cannot reach API");
+    });
+  }
+
+  function renderArchAll(data) {
+    renderConceptStack(data);
+    renderRepoStrata();
+    renderRoleTiers(data);
+    renderArchPhases(data);
+    renderGovernanceTrust(data);
+  }
+
+  // ── ARCH: Detail Panel ─────────────────────────────
+  function bindDetailPanel() {
+    document.getElementById("panel-close").addEventListener("click", closeDetailPanel);
+    document.addEventListener("keydown", function (e) { if (e.key === "Escape") closeDetailPanel(); });
+    document.getElementById("panel-body").addEventListener("click", function (e) {
+      var link = e.target.closest("[data-open-role]");
+      if (link) { openRolePanel(link.getAttribute("data-open-role")); return; }
+      link = e.target.closest("[data-open-phase]");
+      if (link) { openPhasePanel(parseInt(link.getAttribute("data-open-phase"), 10)); return; }
+      link = e.target.closest("[data-open-concept]");
+      if (link) { openConceptPanel(link.getAttribute("data-open-concept")); return; }
+    });
+  }
+
+  function openArchPanel(type, id, title, bodyEl) {
+    if (currentPanel && currentPanel.type === type && currentPanel.id === id) { closeDetailPanel(); return; }
+    currentPanel = { type: type, id: id };
+    document.getElementById("panel-title").textContent = title;
+    var body = clearEl("panel-body");
+    body.appendChild(bodyEl);
+    document.body.classList.add("panel-open");
+    updateArchActive();
+  }
+
+  function closeDetailPanel() {
+    currentPanel = null;
+    document.body.classList.remove("panel-open");
+    updateArchActive();
+  }
+
+  function updateArchActive() {
+    document.querySelectorAll(".concept-box.active, .role-chip.active, .phase-card.active").forEach(function (e) { e.classList.remove("active"); });
+    if (!currentPanel) return;
+    var sel = null;
+    if (currentPanel.type === "concept") sel = '[data-concept="' + currentPanel.id + '"]';
+    else if (currentPanel.type === "role") sel = '[data-role="' + CSS.escape(currentPanel.id) + '"]';
+    else if (currentPanel.type === "phase") sel = '[data-phase="' + currentPanel.id + '"]';
+    if (sel) { var e = document.querySelector(sel); if (e) e.classList.add("active"); }
+  }
+
+  function refreshArchPanel() {
+    if (!currentPanel || !archData) return;
+    if (currentPanel.type === "concept") openConceptPanel(currentPanel.id);
+    else if (currentPanel.type === "role") openRolePanel(currentPanel.id);
+    else if (currentPanel.type === "phase") openPhasePanel(currentPanel.id);
+  }
+
+  // ── ARCH: Lookups ──────────────────────────────────
+  function findAgent(role) {
+    if (!archData || !archData.agents) return null;
+    var r = (role || "").toLowerCase();
+    for (var i = 0; i < archData.agents.length; i++) { if ((archData.agents[i].role || "").toLowerCase() === r) return archData.agents[i]; }
+    return null;
+  }
+  function findRole(name) {
+    if (!archData || !archData.roles) return null;
+    var n = (name || "").toLowerCase();
+    for (var i = 0; i < archData.roles.length; i++) { if ((archData.roles[i].name || "").toLowerCase() === n) return archData.roles[i]; }
+    return null;
+  }
+  function findPhase(num) {
+    if (!archData || !archData.phases) return null;
+    for (var i = 0; i < archData.phases.length; i++) { if (archData.phases[i].number === num) return archData.phases[i]; }
+    return null;
+  }
+
+  // ── ARCH: Concept Stack ────────────────────────────
+  function renderConceptStack(data) {
+    var grid = clearEl("concept-grid");
+    var concepts = [
+      { key: "layer",   label: "Layer",   num: String((data.layers || []).length || 14), q: "What domain?",        cls: "box-layer" },
+      { key: "actor",   label: "Actor",   num: String((data.actors || []).length),       q: "Who is it?",          cls: "box-actor" },
+      { key: "agent",   label: "Agent",   num: (data.agents || []).length + " running",  q: "What is it?",         cls: "box-agent" },
+      { key: "role",    label: "Role",    num: String((data.roles || []).length),         q: "What does it do?",    cls: "box-role" },
+      { key: "persona", label: "Persona", num: "50 / 34",                                q: "How does it present?", cls: "box-persona" }
+    ];
+    concepts.forEach(function (c) {
+      var box = el("div", { cls: "concept-box " + c.cls });
+      box.setAttribute("data-concept", c.key);
+      append(box, el("div", { cls: "c-num", text: c.num }), el("div", { cls: "c-label", text: c.label }), el("div", { cls: "c-question", text: c.q }));
+      box.addEventListener("click", function () { openConceptPanel(c.key); });
+      grid.appendChild(box);
+    });
+  }
+
+  function openConceptPanel(key) {
+    if (!archData) return;
+    var frag = document.createDocumentFragment(), title = "";
+    if (key === "layer") {
+      title = "Layers";
+      var layers = archData.layers || [];
+      if (!layers.length) { frag.appendChild(el("div", { cls: "data-empty", text: "Layer data not yet available" })); }
+      else {
+        var rows = layers.map(function (l, i) {
+          var dc = DEPTH_COLORS[(l.depth || "").toLowerCase()] || DEPTH_COLORS.designed;
+          var tr = el("tr");
+          tr.appendChild(el("td", { text: String(l.number != null ? l.number : i), style: { color: dc, fontWeight: "700" } }));
+          tr.appendChild(el("td", { text: l.name || "", style: { color: dc } }));
+          tr.appendChild(el("td", { text: l.focus || "" }));
+          tr.appendChild(el("td", { text: l.description || "", style: { color: "var(--text-sec)" } }));
+          return tr;
+        });
+        frag.appendChild(makeTable(["#", "Name", "Focus", "Description"], rows));
+      }
+    } else if (key === "actor") {
+      title = "Actors";
+      var actors = archData.actors || [];
+      if (!actors.length) { frag.appendChild(el("div", { cls: "data-empty", text: "Actor data not yet available" })); }
+      else {
+        var rows = actors.map(function (a) {
+          var tr = el("tr");
+          tr.appendChild(el("td", { text: a.name || "" }));
+          var tc = el("td"); tc.appendChild(el("span", { cls: "status-badge " + ((a.type || "").toLowerCase() === "human" ? "status-in_progress" : "status-running"), text: (a.type || "").toLowerCase() === "human" ? "Human" : "AI" })); tr.appendChild(tc);
+          var sc = el("td"); var running = findAgent(a.name);
+          sc.appendChild(running ? el("span", { cls: "status-badge status-running", text: "running" }) : document.createTextNode("\u2014"));
+          tr.appendChild(sc); return tr;
+        });
+        frag.appendChild(makeTable(["Name", "Type", "Status"], rows));
+      }
+    } else if (key === "agent") {
+      title = "Running Agents";
+      var agents = archData.agents || [];
+      if (!agents.length) { frag.appendChild(el("div", { cls: "data-empty", text: "No agents currently running" })); }
+      else {
+        var rows = agents.map(function (ag) {
+          var tr = el("tr", { cls: "clickable-row" }); tr.setAttribute("data-open-role", ag.role || "");
+          tr.appendChild(el("td", { text: ag.role || "" }));
+          var sc = el("td"); sc.appendChild(statusBadgeEl(ag.state)); tr.appendChild(sc);
+          var mc = el("td"); mc.appendChild(el("span", { cls: "status-badge", text: shortModel(ag.model), style: { background: "rgba(168,85,247,0.12)", color: "var(--purple)", fontFamily: "var(--mono)", fontSize: "10px" } })); tr.appendChild(mc);
+          tr.appendChild(el("td", { text: (ag.current_iteration != null ? ag.current_iteration : "?") + " / " + (ag.max_iterations || "?"), style: { fontFamily: "var(--mono)", fontSize: "11px" } }));
+          tr.appendChild(el("td", { text: ag.estimated_cost != null ? "$" + ag.estimated_cost.toFixed(3) : "\u2014", style: { fontFamily: "var(--mono)", fontSize: "11px" } }));
+          return tr;
+        });
+        frag.appendChild(makeTable(["Role", "State", "Model", "Iter", "Cost"], rows));
+      }
+    } else if (key === "role") {
+      title = "All Roles";
+      var roles = archData.roles || [];
+      if (!roles.length) { frag.appendChild(el("div", { cls: "data-empty", text: "Role data not yet available" })); }
+      else {
+        var grouped = {};
+        roles.forEach(function (r) { var t = r.tier || "?"; if (!grouped[t]) grouped[t] = []; grouped[t].push(r); });
+        ["A", "B", "C", "D", "?"].forEach(function (t) {
+          if (!grouped[t]) return;
+          var children = grouped[t].map(function (r) {
+            var row = el("div", { cls: "p-row clickable-row", style: { cursor: "pointer" } }); row.setAttribute("data-open-role", r.name || "");
+            var lbl = el("span", { cls: "p-label", style: { minWidth: "auto", display: "flex", alignItems: "center", gap: "6px" } });
+            append(lbl, statusDotEl(r.status), document.createTextNode(" " + (r.name || "")));
+            row.appendChild(lbl);
+            row.appendChild(el("span", { cls: "p-val", text: r.purpose || "", style: { flex: "1", color: "var(--text-sec)", fontSize: "11px" } }));
+            return row;
+          });
+          frag.appendChild(makeSection(TIER_META[t] ? TIER_META[t].label : "Unassigned", children));
+        });
+      }
+    } else if (key === "persona") {
+      title = "Personas";
+      frag.appendChild(makeSection("Persona System", [makeRow("Defined", "50"), makeRow("Active", "34"), makeRow("Storage", "site-postgres"), makeRow("Survives reboot", "Yes")]));
+      frag.appendChild(makeSection("Categories", [
+        makeRow("Core", "Guardian, Strategist, Planner, Implementer, CTO, Reviewer, SysMon, Allocator, Spawner"),
+        makeRow("Specialist", "Architect, Builder, Tester, Researcher, Critic, PM, Finance"),
+        makeRow("Emergent", "Advocate, Analyst, Designer, Explorer, Historian, Librarian, Scout, Storyteller, +23 more")
+      ]));
+      frag.appendChild(el("p", { text: "Persona data not yet served by API.", style: { marginTop: "1rem", fontSize: "11px", color: "var(--text-dim)", fontStyle: "italic" } }));
+    }
+    openArchPanel("concept", key, title, frag);
+  }
+
+  // ── ARCH: Repo Strata ──────────────────────────────
+  function renderRepoStrata() {
+    var c = clearEl("repo-content");
+    function repoTier(label, cards) {
+      var tier = el("div", { cls: "repo-tier" });
+      tier.appendChild(el("div", { cls: "repo-tier-label", text: label }));
+      var cw = el("div", { cls: "repo-tier-cards" });
+      cards.forEach(function (d) {
+        var card = el("div", { cls: "repo-card", style: { borderColor: d.bc } });
+        append(card, el("div", { cls: "r-name", text: d.name, style: { color: d.nc } }), el("div", { cls: "r-loc", text: d.loc }), el("div", { cls: "r-desc", text: d.desc }));
+        cw.appendChild(card);
+      });
+      tier.appendChild(cw); return tier;
+    }
+    var stack = el("div", { cls: "repo-stack" });
+    stack.appendChild(repoTier("Product", [{ name: "lovyou-ai-site", loc: "47K LOC \u00b7 Go + Templ", desc: "Web UI, 50 personas, Mind system, OAuth, governance, spaces.", bc: "rgba(59,130,246,0.3)", nc: "var(--blue)" }]));
+    stack.appendChild(el("div", { cls: "repo-arrow", text: "\u2191 HTTP API + Webhooks" }));
+    stack.appendChild(repoTier("Application", [{ name: "lovyou-ai-hive", loc: "22K LOC \u00b7 Go", desc: "Multi-agent runtime, pipeline, 53 prompts, 16 governance docs.", bc: "rgba(245,158,11,0.3)", nc: "var(--amber)" }]));
+    stack.appendChild(el("div", { cls: "repo-arrow", text: "\u2191 imports" }));
+    stack.appendChild(repoTier("Abstraction", [
+      { name: "agent", loc: "862 LOC \u00b7 Go", desc: "Lifecycle, FSM, 13 ops.", bc: "rgba(34,197,94,0.3)", nc: "var(--green)" },
+      { name: "work", loc: "3.4K LOC \u00b7 Go \u00b7 39 tests", desc: "Event-sourced task mgmt, 7 event types.", bc: "rgba(34,197,94,0.3)", nc: "var(--green)" }
+    ]));
+    stack.appendChild(el("div", { cls: "repo-arrow", text: "\u2191 imports" }));
+    stack.appendChild(repoTier("Substrate", [{ name: "lovyou-ai-eventgraph", loc: "270K LOC \u00b7 Go/Rust/Python/TS/.NET", desc: "Append-only hash-chained event store, 201 primitives, 121 event types.", bc: "rgba(239,68,68,0.3)", nc: "var(--red)" }]));
+    c.appendChild(stack);
+    c.appendChild(el("div", { cls: "repo-total", text: "Total: 343K LOC, ~86K test LOC, 205 test files. The substrate has zero dependencies \u2014 everything flows upward." }));
+  }
+
+  // ── ARCH: Role Tiers ───────────────────────────────
+  function renderRoleTiers(data) {
+    var container = clearEl("tiers-content");
+    var roles = data.roles || [];
+    if (!roles.length) { container.appendChild(el("div", { cls: "data-empty", text: "Role data not yet available" })); return; }
+    var grouped = {};
+    roles.forEach(function (r) { var t = r.tier || "?"; if (!grouped[t]) grouped[t] = []; grouped[t].push(r); });
+    ["A", "B", "C", "D"].forEach(function (t) {
+      var meta = TIER_META[t], list = grouped[t] || [];
+      if (!list.length) return;
+      var sec = el("div", { cls: "arch-tier-section" });
+      var header = el("div", { cls: "arch-tier-header" });
+      append(header, el("span", { cls: "tier-badge tier-badge-" + t, text: meta.label }), el("span", { cls: "arch-tier-desc", text: meta.desc }));
+      sec.appendChild(header);
+      var grid = el("div", { cls: "role-grid" });
+      list.forEach(function (r) {
+        var agent = findAgent(r.name), ms = agent ? shortModel(agent.model) : "";
+        var chip = el("div", { cls: "role-chip" }); chip.setAttribute("data-role", r.name || "");
+        append(chip, statusDotEl(r.status), el("span", { cls: "rc-name", text: r.name || "" }));
+        if (ms) chip.appendChild(el("span", { cls: "rc-model", text: ms }));
+        chip.addEventListener("click", function () { openRolePanel(r.name); });
+        grid.appendChild(chip);
+      });
+      sec.appendChild(grid); container.appendChild(sec);
+    });
+    if (grouped["?"]) container.appendChild(el("div", { text: "Plus " + grouped["?"].length + " roles with no formal tier assignment.", style: { marginTop: "0.5rem", fontSize: "12px", color: "var(--text-sec)" } }));
+  }
+
+  function openRolePanel(roleName) {
+    if (!archData) return;
+    var role = findRole(roleName);
+    if (!role) { openArchPanel("role", roleName, roleName, el("div", { cls: "data-empty", text: "Role not found" })); return; }
+    var agent = findAgent(roleName), frag = document.createDocumentFragment();
+    var ov = [makeRow("Tier", tierBadgeEl(role.tier || "?")), makeRow("Status", statusBadgeEl(role.status)), makeRow("Purpose", role.purpose || "\u2014"), makeRow("Category", role.category || "\u2014"), makeRow("Has prompt", role.has_prompt ? "Yes" : "No"), makeRow("Has persona", role.has_persona ? "Yes" : "No")];
+    if (role.graduated) ov.push(makeRow("Graduated", role.graduated));
+    frag.appendChild(makeSection("Overview", ov));
+    if (role.model || role.can_operate != null || role.max_iterations) {
+      var cfgRows = [];
+      if (role.model) {
+        var mw = document.createDocumentFragment();
+        mw.appendChild(el("span", { cls: "status-badge", text: shortModel(role.model), style: { background: "rgba(168,85,247,0.12)", color: "var(--purple)", fontFamily: "var(--mono)", fontSize: "10px" } }));
+        mw.appendChild(document.createTextNode(" ")); mw.appendChild(el("span", { text: role.model, style: { color: "var(--text-dim)", fontSize: "11px" } }));
+        cfgRows.push(makeRow("Model", mw));
+      }
+      if (role.can_operate != null) cfgRows.push(makeRow("CanOperate", role.can_operate ? "Yes" : "No"));
+      if (role.max_iterations) cfgRows.push(makeRow("MaxIterations", String(role.max_iterations)));
+      frag.appendChild(makeSection("Configuration", cfgRows));
+    }
+    if (role.watch_patterns && role.watch_patterns.length) {
+      var ul = el("ul", { cls: "watch-list" }); role.watch_patterns.forEach(function (w) { ul.appendChild(el("li", { text: w })); });
+      frag.appendChild(makeSection("Watch Patterns", ul));
+    }
+    if (role.phase != null) {
+      var ph = findPhase(role.phase), pl = ph ? "Phase " + role.phase + " \u2014 " + ph.label : "Phase " + role.phase;
+      frag.appendChild(makeSection("Phase", crossLink(pl, "data-open-phase", String(role.phase))));
+    }
+    if (role.dependencies && role.dependencies.length) {
+      var depRows = role.dependencies.map(function (dep) {
+        var dr = findRole(dep), row = el("div", { cls: "p-row" }), val = el("span", { cls: "p-val" });
+        append(val, statusDotEl(dr ? dr.status : "missing"), document.createTextNode(" "), crossLink(dep, "data-open-role", dep));
+        row.appendChild(val); return row;
+      });
+      frag.appendChild(makeSection("Dependencies", depRows));
+    }
+    if (agent) {
+      var rt = [makeRow("State", statusBadgeEl(agent.state)), makeRow("Iteration", (agent.current_iteration != null ? agent.current_iteration : "?") + " / " + (agent.max_iterations || "?"))];
+      if (agent.estimated_cost != null) rt.push(makeRow("Est. Cost", "$" + agent.estimated_cost.toFixed(3)));
+      if (agent.last_event_type) rt.push(makeRow("Last Event", agent.last_event_type));
+      if (agent.last_event_time) rt.push(makeRow("Event Time", agent.last_event_time));
+      frag.appendChild(makeSection("Live Runtime", rt));
+    }
+    openArchPanel("role", roleName, roleName, frag);
+  }
+
+  // ── ARCH: Phases ───────────────────────────────────
+  function renderArchPhases(data) {
+    var phases = data.phases || [];
+    var barEl = clearEl("arch-phase-bar"), cardsEl = clearEl("arch-phase-cards");
+    if (!phases.length) { barEl.appendChild(el("div", { cls: "data-empty", text: "Phase data not yet available" })); return; }
+    phases.sort(function (a, b) { return (a.number || 0) - (b.number || 0); });
+    phases.forEach(function (p) {
+      var status = p.status || "blocked";
+      var node = el("div", { cls: "arch-phase-node " + status }); node.setAttribute("data-phase", String(p.number));
+      var dot = el("div", { cls: "arch-phase-dot" }); dot.appendChild(el("span", { cls: "arch-phase-dot-num", text: String(p.number) }));
+      node.appendChild(dot); node.appendChild(el("div", { cls: "ap-label", text: p.label || "Phase " + p.number }));
+      if (p.completed_at) node.appendChild(el("div", { cls: "ap-date", text: p.completed_at }));
+      node.addEventListener("click", function () { openPhasePanel(p.number); });
+      barEl.appendChild(node);
+    });
+    phases.forEach(function (p) {
+      var status = p.status || "blocked", agents = p.agents || [];
+      var card = el("div", { cls: "phase-card" }); card.setAttribute("data-phase", String(p.number));
+      var head = el("div", { cls: "phase-card-head" });
+      append(head, el("div", { cls: "phase-card-title", text: "Phase " + p.number + ": " + (p.label || "") }), statusBadgeEl(status));
+      card.appendChild(head);
+      if (p.notes || p.description) card.appendChild(el("div", { cls: "phase-card-desc", text: p.notes || p.description }));
+      if (agents.length) {
+        var aw = el("div", { cls: "phase-card-agents" });
+        agents.forEach(function (a) {
+          var tag = el("span", { cls: "phase-agent-tag" }); tag.setAttribute("data-open-role", a.name || a.role || "");
+          append(tag, statusDotEl(a.status), el("span", { text: a.name || a.role || "" }));
+          tag.addEventListener("click", function (e) { e.stopPropagation(); openRolePanel(a.name || a.role || ""); });
+          aw.appendChild(tag);
+        });
+        card.appendChild(aw);
+      }
+      var gaps = agents.filter(function (a) { var s = (a.status || "").toLowerCase(); return s === "missing" || s === "designed"; });
+      if (gaps.length && (status === "blocked" || status === "in_progress")) {
+        var gd = el("div", { cls: "phase-gaps" }); gd.appendChild(el("div", { cls: "phase-gaps-title", text: "Gaps (" + gaps.length + ")" }));
+        gd.appendChild(document.createTextNode(gaps.map(function (g) { return (g.name || g.role || "") + " (" + (g.status || "") + ")"; }).join(", ")));
+        card.appendChild(gd);
+      }
+      if (p.dependencies && p.dependencies.length) {
+        var dd = el("div", { cls: "phase-deps" }); dd.appendChild(document.createTextNode("Requires: "));
+        p.dependencies.forEach(function (dn, idx) {
+          var dp = findPhase(dn), done = dp && dp.status === "complete";
+          var lk = crossLink("Phase " + dn + (done ? " \u2713" : ""), "data-open-phase", String(dn));
+          lk.addEventListener("click", function (e) { e.stopPropagation(); openPhasePanel(dn); });
+          dd.appendChild(lk); if (idx < p.dependencies.length - 1) dd.appendChild(document.createTextNode(", "));
+        });
+        card.appendChild(dd);
+      }
+      var ds = "";
+      if (p.started_at) ds += "Started: " + p.started_at;
+      if (p.completed_at) ds += (ds ? " \u00b7 " : "") + "Completed: " + p.completed_at;
+      if (ds) card.appendChild(el("div", { cls: "phase-dates", text: ds }));
+      card.addEventListener("click", function (e) {
+        if (e.target.closest(".phase-agent-tag") || e.target.closest(".cross-link")) return;
+        openPhasePanel(p.number);
+      });
+      cardsEl.appendChild(card);
+    });
+  }
+
+  function openPhasePanel(phaseNum) {
+    if (!archData) return;
+    var phase = findPhase(phaseNum);
+    if (!phase) { openArchPanel("phase", phaseNum, "Phase " + phaseNum, el("div", { cls: "data-empty", text: "Phase not found" })); return; }
+    var frag = document.createDocumentFragment();
+    var ov = [makeRow("Status", statusBadgeEl(phase.status || "blocked"))];
+    if (phase.notes || phase.description) ov.push(makeRow("Description", phase.notes || phase.description));
+    if (phase.started_at) ov.push(makeRow("Started", phase.started_at));
+    if (phase.completed_at) ov.push(makeRow("Completed", phase.completed_at));
+    frag.appendChild(makeSection("Overview", ov));
+    var agents = phase.agents || [];
+    if (agents.length) {
+      var rows = agents.map(function (a) {
+        var tr = el("tr", { cls: "clickable-row" }); tr.setAttribute("data-open-role", a.name || a.role || "");
+        var nc = el("td"); append(nc, statusDotEl(a.status), document.createTextNode(" " + (a.name || a.role || "")));
+        tr.appendChild(nc); var sc = el("td"); sc.appendChild(statusBadgeEl(a.status)); tr.appendChild(sc); return tr;
+      });
+      frag.appendChild(makeSection("Agents (" + agents.length + ")", makeTable(["Name", "Status"], rows)));
+      var gaps = agents.filter(function (a) { var s = (a.status || "").toLowerCase(); return s === "missing" || s === "designed"; });
+      if (gaps.length) {
+        var gr = gaps.map(function (g) {
+          var row = el("div", { cls: "p-row", style: { color: "var(--red)" } }), val = el("span", { cls: "p-val" });
+          append(val, statusDotEl(g.status), document.createTextNode(" " + (g.name || g.role || "") + " \u2014 " + (g.status || "")));
+          row.appendChild(val); return row;
+        });
+        var gs = makeSection("Gaps (" + gaps.length + ")", gr); gs.querySelector(".p-section-title").style.color = "var(--red)"; frag.appendChild(gs);
+      }
+    }
+    if (phase.dependencies && phase.dependencies.length) {
+      var dr = phase.dependencies.map(function (dn) {
+        var dp = findPhase(dn), done = dp && dp.status === "complete";
+        var row = el("div", { cls: "p-row" }), val = el("span", { cls: "p-val" });
+        val.appendChild(crossLink("Phase " + dn + (dp ? " \u2014 " + dp.label : "") + (done ? " \u2713" : ""), "data-open-phase", String(dn)));
+        row.appendChild(val); return row;
+      });
+      frag.appendChild(makeSection("Dependencies", dr));
+    }
+    if (phase.exit_criteria && phase.exit_criteria.length) {
+      var ul = el("ul", { cls: "watch-list" }); phase.exit_criteria.forEach(function (c) { ul.appendChild(el("li", { text: c })); });
+      frag.appendChild(makeSection("Exit Criteria", ul));
+    }
+    openArchPanel("phase", phaseNum, "Phase " + phaseNum + ": " + (phase.label || ""), frag);
+  }
+
+  // ── ARCH: Governance Trust ─────────────────────────
+  function renderGovernanceTrust(data) {
+    var container = clearEl("trust-section");
+    var agents = data.agents || [];
+    var hasTrust = agents.some(function (a) { return a.trust_score != null; });
+    if (!hasTrust) return;
+    container.appendChild(el("div", { cls: "p-section-title", text: "Live Trust Scores", style: { fontSize: "11px", fontWeight: "600", textTransform: "uppercase", letterSpacing: "0.08em", color: "var(--text-dim)", marginBottom: "0.75rem" } }));
+    var rows = agents.map(function (a) {
+      var score = a.trust_score, tr = el("tr");
+      tr.appendChild(el("td", { text: a.role || "" }));
+      tr.appendChild(el("td", { text: score != null ? score.toFixed(3) : "\u2014", style: { fontFamily: "var(--mono)" } }));
+      var lc = el("td");
+      if (score == null) { lc.textContent = "\u2014"; }
+      else if (score < 0.2) { lc.textContent = "Required (<0.2)"; lc.className = "authority-required"; }
+      else if (score <= 0.8) { lc.textContent = "Recommended (0.2-0.8)"; lc.className = "authority-recommended"; }
+      else { lc.textContent = "Notification (>0.8)"; lc.className = "authority-notification"; }
+      tr.appendChild(lc); return tr;
+    });
+    var table = el("table", { cls: "trust-table" });
+    var thead = el("tr");
+    ["Agent", "Trust Score", "Authority Level"].forEach(function (h) { thead.appendChild(el("th", { text: h })); });
+    table.appendChild(thead); rows.forEach(function (r) { table.appendChild(r); }); container.appendChild(table);
   }
 
 }());
