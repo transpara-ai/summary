@@ -3,7 +3,7 @@
 <head>
 <meta charset="UTF-8">
 <meta name="viewport" content="width=device-width, initial-scale=1.0">
-<title>lovyou.ai — Telemetry</title>
+<title>Transpara-AI — Telemetry</title>
 <style>
 * { box-sizing: border-box; margin: 0; padding: 0; }
 
@@ -661,7 +661,7 @@ body.panel-open #app { margin-right: var(--panel-width); transition: margin-righ
 <!-- CONFIG SCREEN -->
 <div id="config-screen" style="display:none">
   <div class="config-card">
-    <h1>lovyou.ai &mdash; Telemetry</h1>
+    <h1>Transpara-AI &mdash; Telemetry</h1>
     <p class="config-subtitle">Enter the work-server URL and API key to connect</p>
     <div class="config-field">
       <label for="cfg-api">API URL</label>
@@ -686,7 +686,7 @@ body.panel-open #app { margin-right: var(--panel-width); transition: margin-righ
 
   <!-- TOPBAR -->
   <div id="topbar">
-    <span class="topbar-brand">lovyou.ai</span>
+    <span class="topbar-brand">Transpara-AI</span>
     <span class="topbar-sep">&middot;</span>
     <div class="view-switcher">
       <button class="view-btn active" data-view="ops">Mission Control</button>
@@ -869,7 +869,8 @@ body.panel-open #app { margin-right: var(--panel-width); transition: margin-righ
   var pollController = null;
   var archPollController = null;
   var lastSuccess  = null;
-  var consecutiveFails = 0;
+  var opsConsecutiveFails = 0;
+  var archConsecutiveFails = 0;
   var _connState   = "";
 
   // Ops-specific state
@@ -1042,10 +1043,14 @@ body.panel-open #app { margin-right: var(--panel-width); transition: margin-righ
 
   function makeTable(headers, rows) {
     var table = el("table");
-    var thead = el("tr");
-    headers.forEach(function (h) { thead.appendChild(el("th", { text: h })); });
+    var thead = el("thead");
+    var headRow = el("tr");
+    headers.forEach(function (h) { headRow.appendChild(el("th", { text: h })); });
+    thead.appendChild(headRow);
     table.appendChild(thead);
-    rows.forEach(function (r) { table.appendChild(r); });
+    var tbody = el("tbody");
+    rows.forEach(function (r) { tbody.appendChild(r); });
+    table.appendChild(tbody);
     return table;
   }
 
@@ -1125,7 +1130,7 @@ body.panel-open #app { margin-right: var(--panel-width); transition: margin-righ
     .then(function (data) {
       if (!data) return;
       lastSuccess = Date.now();
-      consecutiveFails = 0;
+      opsConsecutiveFails = 0;
       setConnStatus("connected", "Live");
       opsData = data;
       opsLastFetch = Date.now();
@@ -1139,8 +1144,8 @@ body.panel-open #app { margin-right: var(--panel-width); transition: margin-righ
     })
     .catch(function (err) {
       if (err.name === "AbortError") return;
-      consecutiveFails++;
-      if (consecutiveFails < 3) setConnStatus("stale", "Retrying\u2026");
+      opsConsecutiveFails++;
+      if (opsConsecutiveFails < 3) setConnStatus("stale", "Retrying\u2026");
       else setConnStatus("error", err.message && err.message.indexOf("fetch") !== -1 ? "Cannot reach API" : "Connection lost");
     });
   }
@@ -1442,7 +1447,7 @@ body.panel-open #app { margin-right: var(--panel-width); transition: margin-righ
     .then(function (data) {
       if (!data) return;
       lastSuccess = Date.now();
-      consecutiveFails = 0;
+      archConsecutiveFails = 0;
       setConnStatus("connected", "Live");
       archData = data;
       archLastFetch = Date.now();
@@ -1451,8 +1456,8 @@ body.panel-open #app { margin-right: var(--panel-width); transition: margin-righ
     })
     .catch(function (err) {
       if (err.name === "AbortError") return;
-      consecutiveFails++;
-      if (consecutiveFails < 3) setConnStatus("stale", "Retrying\u2026");
+      archConsecutiveFails++;
+      if (archConsecutiveFails < 3) setConnStatus("stale", "Retrying\u2026");
       else setConnStatus("error", "Cannot reach API");
     });
   }
