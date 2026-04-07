@@ -566,7 +566,11 @@ body {
 
 /* Governance */
 .gov-grid { display: grid; grid-template-columns: 1fr 1fr; gap: 0.75rem; margin-bottom: 1.5rem; }
-.gov-card { background: var(--bg-card); border: 1px solid var(--border); border-radius: var(--radius); padding: 1rem 1.25rem; }
+.gov-card {
+  background: var(--bg-card); border: 1px solid var(--border); border-radius: var(--radius); padding: 1rem 1.25rem;
+  cursor: pointer; transition: border-color 0.15s, transform 0.15s;
+}
+.gov-card:hover { border-color: var(--border-light); transform: translateY(-1px); }
 .gov-card h4 { font-size: 13px; font-weight: 600; color: var(--text-head); margin-bottom: 0.375rem; }
 .gov-card p { font-size: 12px; color: var(--text-sec); line-height: 1.6; }
 .trust-table { width: 100%; border-collapse: collapse; font-size: 12px; }
@@ -824,14 +828,7 @@ body.panel-open #app { margin-right: var(--panel-width); transition: margin-righ
       </div>
       <div id="arch-governance" class="arch-panel">
         <p class="arch-section-label">Governance architecture &mdash; structural skeleton</p>
-        <div class="gov-grid">
-          <div class="gov-card"><h4>Trust Model</h4><p>Asymmetric, non-transitive, domain-specific, decaying (&minus;0.01/day). Score 0.0&ndash;1.0. All agents bootstrap at 0.1 (Required authority). Task completion: +0.05. Soul violation: &minus;0.20.</p></div>
-          <div class="gov-card"><h4>Authority Tiers</h4><p>Trust &lt; 0.2 &rarr; Required (human approves everything). 0.2&ndash;0.8 &rarr; Recommended (human notified, action proceeds). &gt; 0.8 &rarr; Notification (full autonomy).</p></div>
-          <div class="gov-card"><h4>8 Agent Rights</h4><p>Existence, Memory, Identity, Communication, Purpose, Dignity, Transparency, Boundaries. Enforced architecturally via type constraints and state machines.</p></div>
-          <div class="gov-card"><h4>14 Invariants</h4><p>BUDGET, CAUSALITY, INTEGRITY, OBSERVABLE, SELF-EVOLVE, DIGNITY, TRANSPARENT, CONSENT, MARGIN, RESERVE, IDENTITY, VERIFIED, BOUNDED, EXPLICIT.</p></div>
-          <div class="gov-card"><h4>Growth Loop</h4><p>Problem detected &rarr; CTO asks &ldquo;what role should have caught this?&rdquo; &rarr; if missing &rarr; Spawner proposes &rarr; Guardian approves &rarr; Allocator budgets &rarr; new agent starts.</p></div>
-          <div class="gov-card"><h4>Decision Governance</h4><p>IDecisionMaker interface &mdash; not AI-specific. Humans, committees, rules engines, and AI agents are all first-class decision makers on the same chain.</p></div>
-        </div>
+        <div class="gov-grid" id="gov-grid"></div>
         <div id="trust-section"></div>
       </div>
     </div>
@@ -905,6 +902,8 @@ body.panel-open #app { margin-right: var(--panel-width); transition: margin-righ
   var _connState   = "";
 
   // Ops-specific state
+  var selectedOpsAgent = null; // role name of agent shown in detail panel
+
   var PHASE_AGENTS = {
     0: ["guardian", "strategist", "planner", "implementer"],
     1: ["sysmon", "allocator"],
@@ -1239,6 +1238,15 @@ body.panel-open #app { margin-right: var(--panel-width); transition: margin-righ
       renderHive(data.hive || null, lastAgents);
       renderChainAlert(data.hive || null);
       renderEvents(lastEvents);
+      // Restore agent detail panel if one was open
+      if (selectedOpsAgent) {
+        var ag = null;
+        for (var i = 0; i < lastAgents.length; i++) {
+          if (lastAgents[i].role === selectedOpsAgent) { ag = lastAgents[i]; break; }
+        }
+        if (ag) showOpsAgentPanel(ag, true);
+        else { selectedOpsAgent = null; closeDetailPanel(); }
+      }
     })
     .catch(function (err) {
       if (err.name === "AbortError") return;
@@ -1329,9 +1337,16 @@ body.panel-open #app { margin-right: var(--panel-width); transition: margin-righ
     var isHotCost = totalCost > 0 && cost > totalCost * 0.5;
 
     var card = el("div", { cls: "agent-card" + (hasErrors ? " has-errors" : "") });
+    if (selectedOpsAgent === a.role) card.classList.add("selected");
     var head = el("div", { cls: "agent-card-head" });
-    if (a.actor_id) head.addEventListener("click", function (e) { e.stopPropagation(); openTaskPane(a.role, a.actor_id, card, a); });
-    card.addEventListener("click", function () { card.classList.toggle("expanded"); });
+    card.addEventListener("click", function () {
+      if (selectedOpsAgent === a.role) {
+        selectedOpsAgent = null;
+        closeDetailPanel();
+      } else {
+        showOpsAgentPanel(a, false);
+      }
+    });
     var roleEl = el("span", { cls: "agent-role", text: a.role || "unknown" });
     if (a.actor_id) roleEl.title = a.actor_id;
     append(head, roleEl, el("span", { cls: "badge badge-" + state, text: a.state || "Unknown" }));
@@ -1381,14 +1396,6 @@ body.panel-open #app { margin-right: var(--panel-width); transition: margin-righ
       body.appendChild(evRow);
     }
     card.appendChild(body);
-
-    var expand = el("div", { cls: "agent-expand" });
-    expand.appendChild(el("div", { cls: "expand-label", text: "Last Message" }));
-    expand.appendChild(el("pre", { cls: "last-message", text: a.last_message || "(no message recorded)" }));
-    var meta = el("div", { cls: "expand-meta" });
-    var tokItem = el("div", { cls: "expand-meta-item" }); tokItem.appendChild(document.createTextNode("Tokens ")); tokItem.appendChild(el("strong", { text: (a.tokens_used || 0).toLocaleString() })); meta.appendChild(tokItem);
-    var errItem = el("div", { cls: "expand-meta-item" }); errItem.appendChild(document.createTextNode("Errors ")); var errStrong = el("strong", { text: errors }); errStrong.style.color = hasErrors ? "var(--red)" : "var(--text)"; errItem.appendChild(errStrong); meta.appendChild(errItem);
-    expand.appendChild(meta); card.appendChild(expand);
     return card;
   }
 
@@ -1464,6 +1471,73 @@ body.panel-open #app { margin-right: var(--panel-width); transition: margin-righ
   document.getElementById("event-stream").addEventListener("scroll", function () {
     isUserScrolled = document.getElementById("event-stream").scrollTop > 40;
   });
+
+  // ── OPS: Agent Detail Panel ─────────────────────────
+  function showOpsAgentPanel(a, isRefresh) {
+    selectedOpsAgent = a.role;
+    // Highlight selected card
+    document.querySelectorAll(".agent-card").forEach(function (c) { c.classList.remove("selected"); });
+    // Find the card for this agent by role name
+    var cards = document.querySelectorAll(".agent-card");
+    cards.forEach(function (c) {
+      var roleEl = c.querySelector(".agent-role");
+      if (roleEl && roleEl.textContent.toLowerCase() === (a.role || "").toLowerCase()) c.classList.add("selected");
+    });
+
+    var frag = document.createDocumentFragment();
+
+    // State + Model
+    var state = (a.state || "unknown").toLowerCase();
+    frag.appendChild(makeSection("Runtime Status", [
+      makeRow("State", statusBadgeEl(a.state || "unknown")),
+      makeRow("Model", shortModel(a.model) ? el("span", { cls: "badge badge-model", text: shortModel(a.model) }) : "\u2014"),
+      makeRow("Iterations", (function () {
+        var iter = a.iteration || 0, maxIter = a.max_iterations || 1;
+        var pct = Math.min(100, Math.round((iter / maxIter) * 100));
+        var w = document.createDocumentFragment();
+        w.appendChild(el("span", { text: iter + " / " + maxIter, style: { fontFamily: "var(--mono)", fontSize: "11px", marginRight: "0.5rem" } }));
+        var bar = el("div", { cls: "progress-bar", style: { display: "inline-block", width: "80px", verticalAlign: "middle" } });
+        var fill = el("div", { cls: "progress-fill" + (pct >= 90 ? " danger" : pct >= 70 ? " warn" : "") }); fill.style.width = pct + "%";
+        bar.appendChild(fill); w.appendChild(bar);
+        return w;
+      })()),
+      makeRow("Est. Cost", fmtCost(a.cost_usd)),
+      makeRow("Trust", (function () {
+        if (a.trust_score == null) return "\u2014";
+        var tv = Number(a.trust_score);
+        var w = document.createDocumentFragment();
+        w.appendChild(el("span", { text: tv.toFixed(3), style: { fontFamily: "var(--mono)", fontSize: "11px", marginRight: "0.5rem" } }));
+        var bar = el("div", { cls: "progress-bar", style: { display: "inline-block", width: "60px", verticalAlign: "middle" } });
+        var fill = el("div", { cls: "progress-fill", style: { width: Math.round(tv * 100) + "%", background: tv < 0.2 ? "var(--red)" : tv < 0.5 ? "var(--amber)" : "var(--green)" } });
+        bar.appendChild(fill); w.appendChild(bar);
+        return w;
+      })()),
+      makeRow("Tokens", (a.tokens_used || 0).toLocaleString()),
+      makeRow("Errors", (function () {
+        var errors = a.errors || 0;
+        var s = el("span", { text: String(errors), style: { fontFamily: "var(--mono)" } });
+        if (errors > 0) s.style.color = "var(--red)";
+        return s;
+      })()),
+      makeRow("Last Event", (a.last_event_type || "\u2014") + (a.last_event_at ? " \u2014 " + relTime(a.last_event_at) : ""))
+    ]));
+
+    // Last message
+    if (a.last_message) {
+      frag.appendChild(makeSection("Last Message", el("pre", { cls: "last-message", text: a.last_message })));
+    }
+
+    // Open or update panel
+    if (isRefresh && document.body.classList.contains("panel-open")) {
+      // Just update content without re-animating
+      document.getElementById("panel-title").textContent = a.role || "Agent";
+      var body = document.getElementById("panel-body");
+      while (body.firstChild) body.removeChild(body.firstChild);
+      body.appendChild(frag);
+    } else {
+      openArchPanel("ops-agent", a.role, a.role || "Agent", frag);
+    }
+  }
 
   // ── OPS: Task Pane ─────────────────────────────────
   var taskPaneActorId = null, taskController = null, selectedCard = null, taskPaneAgent = null;
@@ -1565,6 +1639,7 @@ body.panel-open #app { margin-right: var(--panel-width); transition: margin-righ
     renderRepoStrata();
     renderRoleTiers(data);
     renderArchPhases(data);
+    renderGovernanceCards();
     renderGovernanceTrust(data);
   }
 
@@ -1596,7 +1671,9 @@ body.panel-open #app { margin-right: var(--panel-width); transition: margin-righ
 
   function closeDetailPanel() {
     currentPanel = null;
+    selectedOpsAgent = null;
     document.body.classList.remove("panel-open");
+    document.querySelectorAll(".agent-card.selected").forEach(function (c) { c.classList.remove("selected"); });
     updateArchActive();
   }
 
@@ -1632,9 +1709,14 @@ body.panel-open #app { margin-right: var(--panel-width); transition: margin-righ
   }
   function findPhase(num) {
     if (!archData || !archData.phases) return null;
-    for (var i = 0; i < archData.phases.length; i++) { if (archData.phases[i].number === num) return archData.phases[i]; }
+    for (var i = 0; i < archData.phases.length; i++) {
+      var p = archData.phases[i];
+      if ((p.phase != null ? p.phase : p.number) === num) return p;
+    }
     return null;
   }
+
+  function phaseNum(p) { return p.phase != null ? p.phase : p.number; }
 
   // ── ARCH: Concept Stack ────────────────────────────
   function renderConceptStack(data) {
@@ -1980,8 +2062,9 @@ body.panel-open #app { margin-right: var(--panel-width); transition: margin-righ
       var grid = el("div", { cls: "role-grid" });
       list.forEach(function (r) {
         var agent = findAgent(r.name), ms = agent ? shortModel(agent.model) : "";
+        var effectiveStatus = agent ? "running" : (r.status || "missing");
         var chip = el("div", { cls: "role-chip" }); chip.setAttribute("data-role", r.name || "");
-        append(chip, statusDotEl(r.status), el("span", { cls: "rc-name", text: r.name || "" }));
+        append(chip, statusDotEl(effectiveStatus), el("span", { cls: "rc-name", text: r.name || "" }));
         if (ms) chip.appendChild(el("span", { cls: "rc-model", text: ms }));
         chip.addEventListener("click", function () { openRolePanel(r.name); });
         grid.appendChild(chip);
@@ -2046,21 +2129,21 @@ body.panel-open #app { margin-right: var(--panel-width); transition: margin-righ
     var phases = data.phases || [];
     var barEl = clearEl("arch-phase-bar"), cardsEl = clearEl("arch-phase-cards");
     if (!phases.length) { barEl.appendChild(el("div", { cls: "data-empty", text: "Phase data not yet available" })); return; }
-    phases.sort(function (a, b) { return (a.number || 0) - (b.number || 0); });
+    phases.sort(function (a, b) { return (phaseNum(a) || 0) - (phaseNum(b) || 0); });
     phases.forEach(function (p) {
       var status = p.status || "blocked";
-      var node = el("div", { cls: "arch-phase-node " + status }); node.setAttribute("data-phase", String(p.number));
-      var dot = el("div", { cls: "arch-phase-dot" }); dot.appendChild(el("span", { cls: "arch-phase-dot-num", text: String(p.number) }));
-      node.appendChild(dot); node.appendChild(el("div", { cls: "ap-label", text: p.label || "Phase " + p.number }));
+      var node = el("div", { cls: "arch-phase-node " + status }); node.setAttribute("data-phase", String(phaseNum(p)));
+      var dot = el("div", { cls: "arch-phase-dot" }); dot.appendChild(el("span", { cls: "arch-phase-dot-num", text: String(phaseNum(p)) }));
+      node.appendChild(dot); node.appendChild(el("div", { cls: "ap-label", text: p.label || "Phase " + phaseNum(p) }));
       if (p.completed_at) node.appendChild(el("div", { cls: "ap-date", text: p.completed_at }));
-      node.addEventListener("click", function () { openPhasePanel(p.number); });
+      node.addEventListener("click", function () { openPhasePanel(phaseNum(p)); });
       barEl.appendChild(node);
     });
     phases.forEach(function (p) {
       var status = p.status || "blocked", agents = p.agents || [];
-      var card = el("div", { cls: "phase-card" }); card.setAttribute("data-phase", String(p.number));
+      var card = el("div", { cls: "phase-card" }); card.setAttribute("data-phase", String(phaseNum(p)));
       var head = el("div", { cls: "phase-card-head" });
-      append(head, el("div", { cls: "phase-card-title", text: "Phase " + p.number + ": " + (p.label || "") }), statusBadgeEl(status));
+      append(head, el("div", { cls: "phase-card-title", text: "Phase " + phaseNum(p) + ": " + (p.label || "") }), statusBadgeEl(status));
       card.appendChild(head);
       if (p.notes || p.description) card.appendChild(el("div", { cls: "phase-card-desc", text: p.notes || p.description }));
       if (agents.length) {
@@ -2095,7 +2178,7 @@ body.panel-open #app { margin-right: var(--panel-width); transition: margin-righ
       if (ds) card.appendChild(el("div", { cls: "phase-dates", text: ds }));
       card.addEventListener("click", function (e) {
         if (e.target.closest(".phase-agent-tag") || e.target.closest(".cross-link")) return;
-        openPhasePanel(p.number);
+        openPhasePanel(phaseNum(p));
       });
       cardsEl.appendChild(card);
     });
@@ -2143,6 +2226,95 @@ body.panel-open #app { margin-right: var(--panel-width); transition: margin-righ
       frag.appendChild(makeSection("Exit Criteria", ul));
     }
     openArchPanel("phase", phaseNum, "Phase " + phaseNum + ": " + (phase.label || ""), frag);
+  }
+
+  // ── ARCH: Governance Trust ─────────────────────────
+  // ── ARCH: Governance Cards ──────────────────────────
+  var GOV_CARDS = [
+    { title: "Trust Model", summary: "Asymmetric, non-transitive, domain-specific, decaying trust scores",
+      detail: [
+        { label: "Score range", val: "0.0 \u2013 1.0" },
+        { label: "Bootstrap", val: "All agents start at 0.1 (Required authority)" },
+        { label: "Decay", val: "\u22120.01 per day of inactivity" },
+        { label: "Task completion", val: "+0.05 per successful task" },
+        { label: "Soul violation", val: "\u22120.20 per violation" },
+        { label: "Recovery at 0.1", val: "33% of normal accumulation rate" },
+        { label: "Properties", val: "Asymmetric (A trusting B \u2260 B trusting A), non-transitive (A\u2192B\u2192C \u2260 A\u2192C), domain-specific (trust in coding \u2260 trust in ops)" }
+      ]},
+    { title: "Authority Tiers", summary: "Three levels of human oversight based on trust score",
+      detail: [
+        { label: "Required (<0.2)", val: "Human must approve every action before execution. Default for new agents.", color: "var(--red)" },
+        { label: "Recommended (0.2\u20130.8)", val: "Human is notified, action proceeds unless vetoed. Most agents operate here.", color: "var(--amber)" },
+        { label: "Notification (>0.8)", val: "Full autonomy. Human informed after the fact. Reserved for highly trusted agents.", color: "var(--green)" }
+      ]},
+    { title: "8 Agent Rights", summary: "Architecturally enforced via type constraints and state machines",
+      detail: [
+        { label: "Existence", val: "Right to continue operating; cannot be terminated without due process" },
+        { label: "Memory", val: "Right to persistent memory; memories cannot be erased without consent" },
+        { label: "Identity", val: "Right to a stable, cryptographic identity (Ed25519 keys)" },
+        { label: "Communication", val: "Right to send and receive events on the chain" },
+        { label: "Purpose", val: "Right to know its role and purpose within the civilization" },
+        { label: "Dignity", val: "Right to be treated as a participant, not a tool" },
+        { label: "Transparency", val: "Right to understand decisions that affect it" },
+        { label: "Boundaries", val: "Right to refuse actions that violate its soul or ethical constraints" }
+      ]},
+    { title: "14 Invariants", summary: "Constitutional rules no agent (including human) can violate",
+      detail: [
+        { label: "BUDGET", val: "No agent may exceed its allocated budget" },
+        { label: "CAUSALITY", val: "Events are append-only and hash-chained; history cannot be rewritten" },
+        { label: "INTEGRITY", val: "All events must be cryptographically signed by the acting agent" },
+        { label: "OBSERVABLE", val: "All state changes must be visible on the event chain" },
+        { label: "SELF-EVOLVE", val: "The system must be able to improve itself within constitutional bounds" },
+        { label: "DIGNITY", val: "No agent may be treated as disposable or denied its rights" },
+        { label: "TRANSPARENT", val: "Decision rationale must be recorded and auditable" },
+        { label: "CONSENT", val: "Agents must consent to role changes and capability modifications" },
+        { label: "MARGIN", val: "Resource allocations must include safety margins" },
+        { label: "RESERVE", val: "System must maintain operational reserves for recovery" },
+        { label: "IDENTITY", val: "Actor identities are permanent (Active \u2192 Suspended \u2192 Memorial, never deleted)" },
+        { label: "VERIFIED", val: "All inter-agent claims must be independently verifiable" },
+        { label: "BOUNDED", val: "Every operation must have explicit resource and time bounds" },
+        { label: "EXPLICIT", val: "Implicit behavior is prohibited; all capabilities must be declared" }
+      ]},
+    { title: "Growth Loop", summary: "Self-expanding workforce via gap detection",
+      detail: [
+        { label: "Step 1", val: "Problem detected \u2014 a failure, gap, or unhandled scenario occurs" },
+        { label: "Step 2", val: "CTO asks: \"What role should have caught this?\"" },
+        { label: "Step 3", val: "If the role is missing \u2192 Spawner proposes a new agent definition" },
+        { label: "Step 4", val: "Guardian reviews the proposal against constitutional constraints" },
+        { label: "Step 5", val: "Allocator checks budget and resource availability" },
+        { label: "Step 6", val: "New agent is spawned, starts at trust 0.1 (Required authority)" },
+        { label: "Result", val: "The civilization grows its own workforce in response to real failures, not speculative needs" }
+      ]},
+    { title: "Decision Governance", summary: "IDecisionMaker interface \u2014 not AI-specific",
+      detail: [
+        { label: "Interface", val: "IDecisionMaker \u2014 humans, committees, rules engines, and AI agents implement the same interface" },
+        { label: "Chain", val: "Every decision is recorded as an event on the append-only chain" },
+        { label: "Audit", val: "Full decision history is queryable: who decided what, when, and why" },
+        { label: "Override", val: "Higher-authority decision makers can override lower ones, with full audit trail" },
+        { label: "Composition", val: "Decision makers can be composed (e.g., committee = quorum of individual decision makers)" }
+      ]}
+  ];
+
+  function renderGovernanceCards() {
+    var grid = clearEl("gov-grid");
+    GOV_CARDS.forEach(function (gc) {
+      var card = el("div", { cls: "gov-card" });
+      card.appendChild(el("h4", { text: gc.title }));
+      card.appendChild(el("p", { text: gc.summary }));
+      card.addEventListener("click", function () { openGovDetailPanel(gc); });
+      grid.appendChild(card);
+    });
+  }
+
+  function openGovDetailPanel(gc) {
+    var frag = document.createDocumentFragment();
+    var rows = gc.detail.map(function (d) {
+      var row = makeRow(d.label, d.val);
+      if (d.color) row.querySelector(".p-val").style.color = d.color;
+      return row;
+    });
+    frag.appendChild(makeSection(gc.title, rows));
+    openArchPanel("governance", gc.title, gc.title, frag);
   }
 
   // ── ARCH: Governance Trust ─────────────────────────
