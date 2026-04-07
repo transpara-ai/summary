@@ -626,6 +626,37 @@ body.panel-open #app { margin-right: var(--panel-width); transition: margin-righ
 .panel-body .watch-list li { font-family: var(--mono); font-size: 11px; color: var(--text-sec); padding: 0.125rem 0; }
 .panel-body .watch-list li::before { content: '\2022'; color: var(--text-dim); margin-right: 0.5rem; }
 
+/* Panel dots (need explicit size outside .role-chip/.legend-item context) */
+.panel-body .dot { width: 7px; height: 7px; border-radius: 50%; flex-shrink: 0; display: inline-block; vertical-align: middle; }
+
+/* Panel legend (reusable inside detail panels) */
+.panel-legend {
+  display: flex; gap: 0.75rem; flex-wrap: wrap; margin-bottom: 0.75rem;
+  font-size: 11px; color: var(--text-sec);
+}
+.panel-legend span { display: flex; align-items: center; gap: 4px; }
+
+/* Panel back link */
+.panel-back {
+  display: inline-flex; align-items: center; gap: 4px; font-size: 11px;
+  color: var(--blue); cursor: pointer; margin-bottom: 0.75rem;
+  transition: opacity 0.15s; background: none; border: none; font-family: var(--font); padding: 0;
+}
+.panel-back:hover { opacity: 0.8; }
+
+/* Persona grid */
+.persona-grid {
+  display: grid; grid-template-columns: repeat(auto-fill, minmax(120px, 1fr));
+  gap: 0.375rem; margin-bottom: 0.75rem;
+}
+.persona-chip {
+  padding: 0.375rem 0.625rem; background: rgba(255,255,255,0.04); border: 1px solid var(--border);
+  border-radius: var(--radius-sm); font-size: 11px; color: var(--text); cursor: pointer;
+  transition: border-color 0.15s, background 0.15s; text-align: center;
+}
+.persona-chip:hover { border-color: var(--border-light); background: rgba(255,255,255,0.06); }
+.persona-chip.inactive { opacity: 0.5; }
+
 /* ── SCROLLBAR ──────────────────────────────────── */
 ::-webkit-scrollbar { width: 6px; height: 6px; }
 ::-webkit-scrollbar-track { background: transparent; }
@@ -899,6 +930,73 @@ body.panel-open #app { margin-right: var(--panel-width); transition: margin-righ
   var DEPTH_COLORS = {
     deep: "#22c55e", moderate: "#3b82f6", shallow: "#f59e0b",
     designed: "#64748b", aspirational: "#4a5568", boundary: "#a855f7"
+  };
+
+  var PERSONA_DATA = {
+    governance: { label: "Governance", members: [
+      { name: "CEO", display: "CEO", active: true, description: "Executive leadership, soul and vision" },
+      { name: "CTO", display: "CTO", active: true, description: "Architecture of the vision" },
+      { name: "Guardian", display: "Guardian", active: true, description: "Independent integrity monitor" },
+      { name: "Philosopher", display: "Philosopher", active: true, description: "Question assumptions, explore meaning" },
+      { name: "PM", display: "PM", active: true, description: "Product direction, prioritization" },
+      { name: "Advocate", display: "Advocate", active: true, description: "Rights advocacy" },
+      { name: "Dissenter", display: "Dissenter", active: true, description: "Constructive opposition" }
+    ]},
+    product: { label: "Product", members: [
+      { name: "Architect", display: "Architect", active: true, description: "Problem decomposition into plans" },
+      { name: "Builder", display: "Builder", active: true, description: "Write code, run tests, commit" },
+      { name: "Critic", display: "Critic", active: true, description: "Challenge assumptions, red-team" },
+      { name: "Designer", display: "Designer", active: true, description: "UX/UI design" },
+      { name: "Tester", display: "Tester", active: true, description: "Test execution, validation" },
+      { name: "Observer", display: "Observer", active: true, description: "Integrity auditing" },
+      { name: "Reflector", display: "Reflector", active: true, description: "Method improvement" }
+    ]},
+    knowledge: { label: "Knowledge", members: [
+      { name: "Analyst", display: "Analyst", active: true, description: "Data analysis" },
+      { name: "Explorer", display: "Explorer", active: true, description: "Open-ended investigation" },
+      { name: "Historian", display: "Historian", active: true, description: "Institutional memory" },
+      { name: "Librarian", display: "Librarian", active: true, description: "Knowledge organization" },
+      { name: "Research", display: "Research", active: true, description: "Deep investigation" }
+    ]},
+    care: { label: "Care", members: [
+      { name: "Harmony", display: "Harmony", active: true, description: "Agent and community wellbeing" },
+      { name: "Mourner", display: "Mourner", active: true, description: "Loss processing" },
+      { name: "Steward", display: "Steward", active: true, description: "Wellbeing guardianship" },
+      { name: "Teacher", display: "Teacher", active: true, description: "Knowledge transfer" },
+      { name: "Witness", display: "Witness", active: true, description: "Bearing witness to events" }
+    ]},
+    outward: { label: "Outward", members: [
+      { name: "Customer-Success", display: "Customer Success", active: true, description: "User relationships" },
+      { name: "Growth", display: "Growth", active: true, description: "User acquisition" },
+      { name: "Storyteller", display: "Storyteller", active: true, description: "Narrative crafting" },
+      { name: "Inhabitant", display: "Inhabitant", active: true, description: "Community member perspective" },
+      { name: "Newcomer", display: "Newcomer", active: true, description: "Onboarding perspective" }
+    ]},
+    resource: { label: "Resource", members: [
+      { name: "Budget", display: "Budget", active: true, description: "Cost tracking" },
+      { name: "Finance", display: "Finance", active: true, description: "Revenue tracking" },
+      { name: "Legal", display: "Legal", active: true, description: "Compliance, licensing" },
+      { name: "Philanthropy", display: "Philanthropy", active: true, description: "Social impact" },
+      { name: "Simplifier", display: "Simplifier", active: true, description: "Complexity reduction" }
+    ]},
+    inactive: { label: "Inactive (Pipeline/Internal)", members: [
+      { name: "Competitive-Intel", display: "Competitive Intel", active: false, description: "Market intelligence" },
+      { name: "Efficiency", display: "Efficiency", active: false, description: "Resource optimization" },
+      { name: "Failure-Analyst", display: "Failure Analyst", active: false, description: "Post-mortem analysis" },
+      { name: "HR", display: "HR", active: false, description: "People operations" },
+      { name: "Innovator", display: "Innovator", active: false, description: "Novel solutions" },
+      { name: "Ops", display: "Ops", active: false, description: "Operations management" },
+      { name: "Orchestrator", display: "Orchestrator", active: false, description: "Workflow coordination" },
+      { name: "Personal-Assistant", display: "Personal Assistant", active: false, description: "Individual support" },
+      { name: "Sanity-Checker", display: "Sanity Checker", active: false, description: "Reality testing" },
+      { name: "Scout", display: "Scout", active: false, description: "Gap identification" },
+      { name: "Senior-Dev", display: "Senior Dev", active: false, description: "Technical mentorship" },
+      { name: "Estimator", display: "Estimator", active: false, description: "Effort prediction" },
+      { name: "Mediator", display: "Mediator", active: false, description: "Dispute resolution" },
+      { name: "Incident-Commander", display: "Incident Commander", active: false, description: "Emergency coordination" },
+      { name: "Resurrect", display: "Resurrect", active: false, description: "Catastrophic recovery" },
+      { name: "Memory-Keeper", display: "Memory Keeper", active: false, description: "Memory curation" }
+    ]}
   };
 
   // ── INIT ───────────────────────────────────────────
@@ -1475,7 +1573,9 @@ body.panel-open #app { margin-right: var(--panel-width); transition: margin-righ
     document.getElementById("panel-close").addEventListener("click", closeDetailPanel);
     document.addEventListener("keydown", function (e) { if (e.key === "Escape") closeDetailPanel(); });
     document.getElementById("panel-body").addEventListener("click", function (e) {
-      var link = e.target.closest("[data-open-role]");
+      var link = e.target.closest("[data-open-agent]");
+      if (link) { openAgentDetailPanel(link.getAttribute("data-open-agent")); return; }
+      link = e.target.closest("[data-open-role]");
       if (link) { openRolePanel(link.getAttribute("data-open-role")); return; }
       link = e.target.closest("[data-open-phase]");
       if (link) { openPhasePanel(parseInt(link.getAttribute("data-open-phase"), 10)); return; }
@@ -1558,11 +1658,30 @@ body.panel-open #app { margin-right: var(--panel-width); transition: margin-righ
   function openConceptPanel(key) {
     if (!archData) return;
     var frag = document.createDocumentFragment(), title = "";
+
+    // ── FIX 1: LAYER PANEL — color legend ──
     if (key === "layer") {
       title = "Layers";
       var layers = archData.layers || [];
       if (!layers.length) { frag.appendChild(el("div", { cls: "data-empty", text: "Layer data not yet available" })); }
       else {
+        // Depth legend
+        var legend = el("div", { cls: "panel-legend" });
+        legend.appendChild(el("span", { text: "Implementation depth:", style: { color: "var(--text-dim)", marginRight: "0.25rem" } }));
+        var depths = [
+          { label: "Deep", color: DEPTH_COLORS.deep },
+          { label: "Moderate", color: DEPTH_COLORS.moderate },
+          { label: "Shallow", color: DEPTH_COLORS.shallow },
+          { label: "Designed", color: DEPTH_COLORS.designed },
+          { label: "Aspirational", color: DEPTH_COLORS.aspirational },
+          { label: "Boundary", color: DEPTH_COLORS.boundary }
+        ];
+        depths.forEach(function (d) {
+          var item = el("span", { text: "\u25CF " + d.label, style: { color: d.color } });
+          legend.appendChild(item);
+        });
+        frag.appendChild(legend);
+        // Table
         var rows = layers.map(function (l, i) {
           var dc = DEPTH_COLORS[(l.depth || "").toLowerCase()] || DEPTH_COLORS.designed;
           var tr = el("tr");
@@ -1574,28 +1693,59 @@ body.panel-open #app { margin-right: var(--panel-width); transition: margin-righ
         });
         frag.appendChild(makeTable(["#", "Name", "Focus", "Description"], rows));
       }
-    } else if (key === "actor") {
+    }
+
+    // ── FIX 2: ACTOR PANEL — resilient field mapping ──
+    else if (key === "actor") {
       title = "Actors";
       var actors = archData.actors || [];
       if (!actors.length) { frag.appendChild(el("div", { cls: "data-empty", text: "Actor data not yet available" })); }
       else {
         var rows = actors.map(function (a) {
           var tr = el("tr");
-          tr.appendChild(el("td", { text: a.name || "" }));
-          var tc = el("td"); tc.appendChild(el("span", { cls: "status-badge " + ((a.type || "").toLowerCase() === "human" ? "status-in_progress" : "status-running"), text: (a.type || "").toLowerCase() === "human" ? "Human" : "AI" })); tr.appendChild(tc);
-          var sc = el("td"); var running = findAgent(a.name);
-          sc.appendChild(running ? el("span", { cls: "status-badge status-running", text: "running" }) : document.createTextNode("\u2014"));
-          tr.appendChild(sc); return tr;
+          // Try multiple field names for resilience
+          var name = a.display_name || a.name || a.id || "";
+          var atype = (a.actor_type || a.type || "ai").toLowerCase();
+          var astatus = (a.status || "").toLowerCase();
+          tr.appendChild(el("td", { text: name }));
+          var tc = el("td");
+          tc.appendChild(el("span", {
+            cls: "status-badge " + (atype === "human" ? "status-in_progress" : "status-running"),
+            text: atype === "human" ? "Human" : "AI"
+          }));
+          tr.appendChild(tc);
+          var sc = el("td");
+          var running = findAgent(name);
+          if (running) {
+            sc.appendChild(el("span", { cls: "status-badge status-running", text: "running" }));
+          } else if (astatus === "active") {
+            sc.appendChild(statusDotEl("defined"));
+            sc.appendChild(document.createTextNode(" active"));
+          } else if (astatus === "suspended") {
+            sc.appendChild(statusDotEl("defined"));
+            sc.appendChild(document.createTextNode(" suspended"));
+          } else if (astatus === "memorial") {
+            sc.appendChild(statusDotEl("designed"));
+            sc.appendChild(document.createTextNode(" memorial"));
+          } else {
+            sc.appendChild(document.createTextNode(astatus || "\u2014"));
+          }
+          tr.appendChild(sc);
+          return tr;
         });
         frag.appendChild(makeTable(["Name", "Type", "Status"], rows));
       }
-    } else if (key === "agent") {
+    }
+
+    // ── FIX 3: AGENT PANEL — clickable rows open agent detail ──
+    else if (key === "agent") {
       title = "Running Agents";
       var agents = archData.agents || [];
       if (!agents.length) { frag.appendChild(el("div", { cls: "data-empty", text: "No agents currently running" })); }
       else {
         var rows = agents.map(function (ag) {
-          var tr = el("tr", { cls: "clickable-row" }); tr.setAttribute("data-open-role", ag.role || "");
+          var tr = el("tr", { cls: "clickable-row" });
+          tr.setAttribute("data-open-agent", ag.role || "");
           tr.appendChild(el("td", { text: ag.role || "" }));
           var sc = el("td"); sc.appendChild(statusBadgeEl(ag.state)); tr.appendChild(sc);
           var mc = el("td"); mc.appendChild(el("span", { cls: "status-badge", text: shortModel(ag.model), style: { background: "rgba(168,85,247,0.12)", color: "var(--purple)", fontFamily: "var(--mono)", fontSize: "10px" } })); tr.appendChild(mc);
@@ -1605,17 +1755,37 @@ body.panel-open #app { margin-right: var(--panel-width); transition: margin-righ
         });
         frag.appendChild(makeTable(["Role", "State", "Model", "Iter", "Cost"], rows));
       }
-    } else if (key === "role") {
+    }
+
+    // ── FIX 4: ROLE PANEL — status dots + legend + drill-down ──
+    else if (key === "role") {
       title = "All Roles";
       var roles = archData.roles || [];
       if (!roles.length) { frag.appendChild(el("div", { cls: "data-empty", text: "Role data not yet available" })); }
       else {
+        // Status legend
+        var legend = el("div", { cls: "panel-legend" });
+        var statuses = [
+          { label: "Running", cls: "dot-running" },
+          { label: "Defined", cls: "dot-defined" },
+          { label: "Designed", cls: "dot-designed" },
+          { label: "Missing", cls: "dot-missing" }
+        ];
+        statuses.forEach(function (s) {
+          var item = el("span");
+          item.appendChild(el("span", { cls: "dot " + s.cls }));
+          item.appendChild(document.createTextNode(" " + s.label));
+          legend.appendChild(item);
+        });
+        frag.appendChild(legend);
+        // Grouped roles
         var grouped = {};
         roles.forEach(function (r) { var t = r.tier || "?"; if (!grouped[t]) grouped[t] = []; grouped[t].push(r); });
         ["A", "B", "C", "D", "?"].forEach(function (t) {
           if (!grouped[t]) return;
           var children = grouped[t].map(function (r) {
-            var row = el("div", { cls: "p-row clickable-row", style: { cursor: "pointer" } }); row.setAttribute("data-open-role", r.name || "");
+            var row = el("div", { cls: "p-row clickable-row", style: { cursor: "pointer" } });
+            row.setAttribute("data-open-role", r.name || "");
             var lbl = el("span", { cls: "p-label", style: { minWidth: "auto", display: "flex", alignItems: "center", gap: "6px" } });
             append(lbl, statusDotEl(r.status), document.createTextNode(" " + (r.name || "")));
             row.appendChild(lbl);
@@ -1625,17 +1795,143 @@ body.panel-open #app { margin-right: var(--panel-width); transition: margin-righ
           frag.appendChild(makeSection(TIER_META[t] ? TIER_META[t].label : "Unassigned", children));
         });
       }
-    } else if (key === "persona") {
+    }
+
+    // ── FIX 5: PERSONA PANEL — full member grid with drill-down ──
+    else if (key === "persona") {
       title = "Personas";
-      frag.appendChild(makeSection("Persona System", [makeRow("Defined", "50"), makeRow("Active", "34"), makeRow("Storage", "site-postgres"), makeRow("Survives reboot", "Yes")]));
-      frag.appendChild(makeSection("Categories", [
-        makeRow("Core", "Guardian, Strategist, Planner, Implementer, CTO, Reviewer, SysMon, Allocator, Spawner"),
-        makeRow("Specialist", "Architect, Builder, Tester, Researcher, Critic, PM, Finance"),
-        makeRow("Emergent", "Advocate, Analyst, Designer, Explorer, Historian, Librarian, Scout, Storyteller, +23 more")
-      ]));
+      // Summary
+      var totalCount = 0, activeCount = 0;
+      Object.keys(PERSONA_DATA).forEach(function (k) {
+        PERSONA_DATA[k].members.forEach(function (m) { totalCount++; if (m.active) activeCount++; });
+      });
+      frag.appendChild(el("div", { text: totalCount + " defined \u00b7 " + activeCount + " active \u00b7 Stored in site-postgres", style: { fontSize: "12px", color: "var(--text-sec)", marginBottom: "1rem" } }));
+      // Categories with persona chips
+      Object.keys(PERSONA_DATA).forEach(function (catKey) {
+        var cat = PERSONA_DATA[catKey];
+        frag.appendChild(el("div", { cls: "p-section-title", text: cat.label + " (" + cat.members.length + ")" }));
+        var grid = el("div", { cls: "persona-grid" });
+        cat.members.forEach(function (m) {
+          var chip = el("div", { cls: "persona-chip" + (m.active ? "" : " inactive"), text: m.display });
+          chip.addEventListener("click", function () { openPersonaDetail(m, catKey); });
+          grid.appendChild(chip);
+        });
+        frag.appendChild(grid);
+      });
       frag.appendChild(el("p", { text: "Persona data not yet served by API.", style: { marginTop: "1rem", fontSize: "11px", color: "var(--text-dim)", fontStyle: "italic" } }));
     }
+
     openArchPanel("concept", key, title, frag);
+  }
+
+  // ── FIX 3: Agent detail panel (combined runtime + role) ──
+  function openAgentDetailPanel(agentRole) {
+    if (!archData) return;
+    var agent = findAgent(agentRole);
+    if (!agent) { openArchPanel("role", agentRole, agentRole, el("div", { cls: "data-empty", text: "Agent not found" })); return; }
+    var role = findRole(agentRole);
+    var frag = document.createDocumentFragment();
+
+    // Runtime status
+    var rt = [];
+    rt.push(makeRow("State", statusBadgeEl(agent.state)));
+    var ms = shortModel(agent.model);
+    if (ms) {
+      var mBadge = el("span", { cls: "status-badge", text: ms, style: { background: "rgba(168,85,247,0.12)", color: "var(--purple)", fontFamily: "var(--mono)", fontSize: "10px" } });
+      rt.push(makeRow("Model", mBadge));
+    }
+    // Iterations with progress bar
+    var iter = agent.current_iteration != null ? agent.current_iteration : (agent.iteration || 0);
+    var maxIter = agent.max_iterations || 1;
+    var pct = Math.min(100, Math.round((iter / maxIter) * 100));
+    var iterWrap = document.createDocumentFragment();
+    iterWrap.appendChild(el("span", { text: iter + " / " + maxIter, style: { fontFamily: "var(--mono)", fontSize: "11px", marginRight: "0.5rem" } }));
+    var bar = el("div", { cls: "progress-bar", style: { display: "inline-block", width: "80px", verticalAlign: "middle" } });
+    var fill = el("div", { cls: "progress-fill" + (pct >= 90 ? " danger" : pct >= 70 ? " warn" : "") });
+    fill.style.width = pct + "%";
+    bar.appendChild(fill);
+    iterWrap.appendChild(bar);
+    rt.push(makeRow("Iterations", iterWrap));
+
+    if (agent.estimated_cost != null) rt.push(makeRow("Est. Cost", "$" + agent.estimated_cost.toFixed(3)));
+    else if (agent.cost_usd != null) rt.push(makeRow("Est. Cost", "$" + agent.cost_usd.toFixed(3)));
+
+    // Trust score
+    if (agent.trust_score != null) {
+      var tv = Number(agent.trust_score);
+      var trustWrap = document.createDocumentFragment();
+      trustWrap.appendChild(el("span", { text: tv.toFixed(3), style: { fontFamily: "var(--mono)", fontSize: "11px", marginRight: "0.5rem" } }));
+      var tBar = el("div", { cls: "progress-bar", style: { display: "inline-block", width: "60px", verticalAlign: "middle" } });
+      var tFill = el("div", { cls: "progress-fill", style: { width: Math.round(tv * 100) + "%", background: tv < 0.2 ? "var(--red)" : tv < 0.5 ? "var(--amber)" : "var(--green)" } });
+      tBar.appendChild(tFill);
+      trustWrap.appendChild(tBar);
+      rt.push(makeRow("Trust Score", trustWrap));
+    } else {
+      rt.push(makeRow("Trust Score", "\u2014"));
+    }
+
+    if (agent.last_event_type) rt.push(makeRow("Last Event", agent.last_event_type + (agent.last_event_at ? " \u2014 " + relTime(agent.last_event_at) : agent.last_event_time ? " \u2014 " + agent.last_event_time : "")));
+
+    frag.appendChild(makeSection("Runtime Status", rt));
+
+    // Last message
+    if (agent.last_message) {
+      var msgPre = el("pre", { cls: "last-message", text: agent.last_message });
+      frag.appendChild(makeSection("Last Message", msgPre));
+    }
+
+    // Role definition (if found)
+    if (role) {
+      var rd = [];
+      rd.push(makeRow("Tier", tierBadgeEl(role.tier || "?")));
+      rd.push(makeRow("Purpose", role.purpose || "\u2014"));
+      if (role.phase != null) {
+        var ph = findPhase(role.phase);
+        var pl = ph ? "Phase " + role.phase + " \u2014 " + ph.label : "Phase " + role.phase;
+        rd.push(makeRow("Phase", crossLink(pl, "data-open-phase", String(role.phase))));
+      }
+      if (role.graduated) rd.push(makeRow("Graduated", role.graduated));
+      if (role.can_operate != null) rd.push(makeRow("CanOperate", role.can_operate ? "Yes" : "No"));
+      rd.push(makeRow("Has prompt", role.has_prompt ? "Yes" : "No"));
+      rd.push(makeRow("Has persona", role.has_persona ? "Yes" : "No"));
+      if (role.category) rd.push(makeRow("Category", role.category));
+      frag.appendChild(makeSection("Role Definition", rd));
+
+      if (role.watch_patterns && role.watch_patterns.length) {
+        var ul = el("ul", { cls: "watch-list" });
+        role.watch_patterns.forEach(function (w) { ul.appendChild(el("li", { text: w })); });
+        frag.appendChild(makeSection("Watch Patterns", ul));
+      }
+      if (role.dependencies && role.dependencies.length) {
+        var depRows = role.dependencies.map(function (dep) {
+          var dr = findRole(dep), row = el("div", { cls: "p-row" }), val = el("span", { cls: "p-val" });
+          append(val, statusDotEl(dr ? dr.status : "missing"), document.createTextNode(" "), crossLink(dep, "data-open-role", dep));
+          row.appendChild(val); return row;
+        });
+        frag.appendChild(makeSection("Dependencies", depRows));
+      }
+    }
+
+    openArchPanel("role", agentRole, agentRole, frag);
+  }
+
+  // ── FIX 5: Persona detail panel ──
+  function openPersonaDetail(persona, catKey) {
+    var frag = document.createDocumentFragment();
+    // Back link
+    var back = el("button", { cls: "panel-back", text: "\u2190 Back to All Personas" });
+    back.addEventListener("click", function () { openConceptPanel("persona"); });
+    frag.appendChild(back);
+
+    var cat = PERSONA_DATA[catKey];
+    var rows = [
+      makeRow("Category", cat ? cat.label : catKey),
+      makeRow("Status", persona.active ? "Active" : "Inactive"),
+      makeRow("Description", persona.description || "\u2014")
+    ];
+    frag.appendChild(makeSection("Overview", rows));
+
+    openArchPanel("concept", "persona-" + persona.name, persona.display, frag);
   }
 
   // ── ARCH: Repo Strata ──────────────────────────────
@@ -1700,6 +1996,10 @@ body.panel-open #app { margin-right: var(--panel-width); transition: margin-righ
     var role = findRole(roleName);
     if (!role) { openArchPanel("role", roleName, roleName, el("div", { cls: "data-empty", text: "Role not found" })); return; }
     var agent = findAgent(roleName), frag = document.createDocumentFragment();
+    // Back link to All Roles list
+    var back = el("button", { cls: "panel-back", text: "\u2190 Back to All Roles" });
+    back.addEventListener("click", function () { openConceptPanel("role"); });
+    frag.appendChild(back);
     var ov = [makeRow("Tier", tierBadgeEl(role.tier || "?")), makeRow("Status", statusBadgeEl(role.status)), makeRow("Purpose", role.purpose || "\u2014"), makeRow("Category", role.category || "\u2014"), makeRow("Has prompt", role.has_prompt ? "Yes" : "No"), makeRow("Has persona", role.has_persona ? "Yes" : "No")];
     if (role.graduated) ov.push(makeRow("Graduated", role.graduated));
     frag.appendChild(makeSection("Overview", ov));
