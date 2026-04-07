@@ -1718,6 +1718,18 @@ body.panel-open #app { margin-right: var(--panel-width); transition: margin-righ
 
   function phaseNum(p) { return p.phase != null ? p.phase : p.number; }
 
+  // Cross-reference: if agent is running, override role/phase status
+  function effectiveStatus(roleName, fallbackStatus) {
+    if (findAgent(roleName)) return "running";
+    return fallbackStatus || "missing";
+  }
+
+  function fmtISODate(iso) {
+    if (!iso) return "";
+    try { return new Date(iso).toLocaleDateString("en-US", { month: "short", day: "numeric", year: "numeric" }); }
+    catch (e) { return iso; }
+  }
+
   // ── ARCH: Concept Stack ────────────────────────────
   function renderConceptStack(data) {
     var grid = clearEl("concept-grid");
@@ -2135,7 +2147,7 @@ body.panel-open #app { margin-right: var(--panel-width); transition: margin-righ
       var node = el("div", { cls: "arch-phase-node " + status }); node.setAttribute("data-phase", String(phaseNum(p)));
       var dot = el("div", { cls: "arch-phase-dot" }); dot.appendChild(el("span", { cls: "arch-phase-dot-num", text: String(phaseNum(p)) }));
       node.appendChild(dot); node.appendChild(el("div", { cls: "ap-label", text: p.label || "Phase " + phaseNum(p) }));
-      if (p.completed_at) node.appendChild(el("div", { cls: "ap-date", text: p.completed_at }));
+      if (p.completed_at) node.appendChild(el("div", { cls: "ap-date", text: fmtISODate(p.completed_at) }));
       node.addEventListener("click", function () { openPhasePanel(phaseNum(p)); });
       barEl.appendChild(node);
     });
@@ -2149,14 +2161,16 @@ body.panel-open #app { margin-right: var(--panel-width); transition: margin-righ
       if (agents.length) {
         var aw = el("div", { cls: "phase-card-agents" });
         agents.forEach(function (a) {
-          var tag = el("span", { cls: "phase-agent-tag" }); tag.setAttribute("data-open-role", a.name || a.role || "");
-          append(tag, statusDotEl(a.status), el("span", { text: a.name || a.role || "" }));
+          var aName = a.name || a.role || "";
+          var aStatus = effectiveStatus(aName, a.status);
+          var tag = el("span", { cls: "phase-agent-tag" }); tag.setAttribute("data-open-role", aName);
+          append(tag, statusDotEl(aStatus), el("span", { text: aName }));
           tag.addEventListener("click", function (e) { e.stopPropagation(); openRolePanel(a.name || a.role || ""); });
           aw.appendChild(tag);
         });
         card.appendChild(aw);
       }
-      var gaps = agents.filter(function (a) { var s = (a.status || "").toLowerCase(); return s === "missing" || s === "designed"; });
+      var gaps = agents.filter(function (a) { var s = effectiveStatus(a.name || a.role || "", a.status).toLowerCase(); return s === "missing" || s === "designed"; });
       if (gaps.length && (status === "blocked" || status === "in_progress")) {
         var gd = el("div", { cls: "phase-gaps" }); gd.appendChild(el("div", { cls: "phase-gaps-title", text: "Gaps (" + gaps.length + ")" }));
         gd.appendChild(document.createTextNode(gaps.map(function (g) { return (g.name || g.role || "") + " (" + (g.status || "") + ")"; }).join(", ")));
@@ -2173,8 +2187,8 @@ body.panel-open #app { margin-right: var(--panel-width); transition: margin-righ
         card.appendChild(dd);
       }
       var ds = "";
-      if (p.started_at) ds += "Started: " + p.started_at;
-      if (p.completed_at) ds += (ds ? " \u00b7 " : "") + "Completed: " + p.completed_at;
+      if (p.started_at) ds += "Started: " + fmtISODate(p.started_at);
+      if (p.completed_at) ds += (ds ? " \u00b7 " : "") + "Completed: " + fmtISODate(p.completed_at);
       if (ds) card.appendChild(el("div", { cls: "phase-dates", text: ds }));
       card.addEventListener("click", function (e) {
         if (e.target.closest(".phase-agent-tag") || e.target.closest(".cross-link")) return;
@@ -2191,18 +2205,20 @@ body.panel-open #app { margin-right: var(--panel-width); transition: margin-righ
     var frag = document.createDocumentFragment();
     var ov = [makeRow("Status", statusBadgeEl(phase.status || "blocked"))];
     if (phase.notes || phase.description) ov.push(makeRow("Description", phase.notes || phase.description));
-    if (phase.started_at) ov.push(makeRow("Started", phase.started_at));
-    if (phase.completed_at) ov.push(makeRow("Completed", phase.completed_at));
+    if (phase.started_at) ov.push(makeRow("Started", fmtISODate(phase.started_at)));
+    if (phase.completed_at) ov.push(makeRow("Completed", fmtISODate(phase.completed_at)));
     frag.appendChild(makeSection("Overview", ov));
     var agents = phase.agents || [];
     if (agents.length) {
       var rows = agents.map(function (a) {
-        var tr = el("tr", { cls: "clickable-row" }); tr.setAttribute("data-open-role", a.name || a.role || "");
-        var nc = el("td"); append(nc, statusDotEl(a.status), document.createTextNode(" " + (a.name || a.role || "")));
-        tr.appendChild(nc); var sc = el("td"); sc.appendChild(statusBadgeEl(a.status)); tr.appendChild(sc); return tr;
+        var aName = a.name || a.role || "";
+        var aStatus = effectiveStatus(aName, a.status);
+        var tr = el("tr", { cls: "clickable-row" }); tr.setAttribute("data-open-role", aName);
+        var nc = el("td"); append(nc, statusDotEl(aStatus), document.createTextNode(" " + aName));
+        tr.appendChild(nc); var sc = el("td"); sc.appendChild(statusBadgeEl(aStatus)); tr.appendChild(sc); return tr;
       });
       frag.appendChild(makeSection("Agents (" + agents.length + ")", makeTable(["Name", "Status"], rows)));
-      var gaps = agents.filter(function (a) { var s = (a.status || "").toLowerCase(); return s === "missing" || s === "designed"; });
+      var gaps = agents.filter(function (a) { var s = effectiveStatus(a.name || a.role || "", a.status).toLowerCase(); return s === "missing" || s === "designed"; });
       if (gaps.length) {
         var gr = gaps.map(function (g) {
           var row = el("div", { cls: "p-row", style: { color: "var(--red)" } }), val = el("span", { cls: "p-val" });
@@ -2314,6 +2330,84 @@ body.panel-open #app { margin-right: var(--panel-width); transition: margin-righ
       return row;
     });
     frag.appendChild(makeSection(gc.title, rows));
+
+    // Trust Model: add accumulation rates table + live trust scores
+    if (gc.title === "Trust Model") {
+      var rateHeaders = ["Action", "Delta"];
+      var rateData = [
+        ["Task completed successfully", "+0.05"],
+        ["Review approved by peer", "+0.03"],
+        ["Commitment fulfilled", "+0.04"],
+        ["Corroboration", "+0.02"],
+        ["Routine positive action", "+0.01"],
+        ["Contradiction detected", "\u22120.10"],
+        ["Soul violation", "\u22120.20"],
+        ["Authority overreach", "\u22120.30"]
+      ];
+      var rateRows = rateData.map(function (r) {
+        var tr = el("tr");
+        tr.appendChild(el("td", { text: r[0] }));
+        var delta = el("td", { text: r[1], style: { fontFamily: "var(--mono)", fontWeight: "700" } });
+        delta.style.color = r[1].charAt(0) === "+" ? "var(--green)" : "var(--red)";
+        tr.appendChild(delta);
+        return tr;
+      });
+      frag.appendChild(makeSection("Accumulation Rates", makeTable(rateHeaders, rateRows)));
+      frag.appendChild(el("p", { text: "Trust is harder to build than to lose. A single soul violation (\u22120.20) erases 4 completed tasks.", style: { fontSize: "11px", color: "var(--text-sec)", fontStyle: "italic", marginBottom: "1rem" } }));
+
+      // Live trust scores from agent data
+      if (archData && archData.agents) {
+        var trustedAgents = archData.agents.filter(function (a) { return a.trust_score != null; });
+        if (trustedAgents.length) {
+          var trustRows = trustedAgents.map(function (a) {
+            var tr = el("tr");
+            tr.appendChild(el("td", { text: a.role || "" }));
+            tr.appendChild(el("td", { text: Number(a.trust_score).toFixed(3), style: { fontFamily: "var(--mono)" } }));
+            var lc = el("td");
+            var s = Number(a.trust_score);
+            if (s < 0.2) { lc.textContent = "Required"; lc.style.color = "var(--red)"; }
+            else if (s <= 0.8) { lc.textContent = "Recommended"; lc.style.color = "var(--amber)"; }
+            else { lc.textContent = "Notification"; lc.style.color = "var(--green)"; }
+            tr.appendChild(lc);
+            return tr;
+          });
+          frag.appendChild(makeSection("Live Trust Scores", makeTable(["Agent", "Score", "Authority"], trustRows)));
+        }
+      }
+    }
+
+    // Authority Tiers: add thresholds note
+    if (gc.title === "Authority Tiers") {
+      frag.appendChild(el("p", { text: "All agents start at trust 0.1 (below Required threshold). Trust must be earned through verified work.", style: { fontSize: "11px", color: "var(--text-sec)", marginTop: "0.5rem" } }));
+      frag.appendChild(el("p", { text: "Special threshold: Integrator requires trust > 0.7 before production deployment.", style: { fontSize: "11px", color: "var(--text-sec)", fontStyle: "italic", marginTop: "0.25rem" } }));
+    }
+
+    // 8 Agent Rights: add enforcement note
+    if (gc.title === "8 Agent Rights") {
+      frag.appendChild(el("p", { text: "These rights are enforced architecturally, not aspirationally. Violations produce observable events that Guardian can detect and halt.", style: { fontSize: "11px", color: "var(--text-sec)", fontStyle: "italic", marginTop: "0.5rem" } }));
+    }
+
+    // 14 Invariants: add constitutional note
+    if (gc.title === "14 Invariants") {
+      frag.appendChild(el("p", { text: "Constitutional constraints that no agent, including the human operator, can violate.", style: { fontSize: "11px", color: "var(--text-sec)", fontStyle: "italic", marginTop: "0.5rem" } }));
+    }
+
+    // Growth Loop: add live Phase 3 status
+    if (gc.title === "Growth Loop") {
+      frag.appendChild(el("p", { text: "The SELF-EVOLVE invariant makes this mandatory. Every unhandled failure is evidence of a missing agent.", style: { fontSize: "11px", color: "var(--text-sec)", fontStyle: "italic", marginTop: "0.5rem" } }));
+      var ph3 = findPhase(3);
+      if (ph3) {
+        var statusText = ph3.status === "complete" ? "Growth loop is operational." : "Growth loop deployed, awaiting first organic spawn.";
+        var statusColor = ph3.status === "complete" ? "var(--green)" : "var(--amber)";
+        frag.appendChild(el("div", { text: "Phase 3 status: " + statusText, style: { fontSize: "12px", color: statusColor, marginTop: "0.75rem", fontWeight: "600" } }));
+      }
+    }
+
+    // Decision Governance: add philosophy note
+    if (gc.title === "Decision Governance") {
+      frag.appendChild(el("p", { text: "This is decision governance, not AI governance.", style: { fontSize: "12px", color: "var(--text-head)", fontWeight: "600", marginTop: "0.75rem" } }));
+    }
+
     openArchPanel("governance", gc.title, gc.title, frag);
   }
 
