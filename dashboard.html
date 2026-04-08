@@ -941,7 +941,8 @@ body.panel-open #app { margin-right: var(--panel-width); transition: margin-righ
       { name: "Philosopher", display: "Philosopher", active: true, description: "Questions assumptions, explores meaning. Operates in Layer 13 (Being) \u2014 the irreducible boundary. Reviews whether the civilization's actions align with its stated values." },
       { name: "PM", display: "PM", active: true, description: "Product direction and prioritization. Bridges the gap between what customers need and what engineers build. Pipeline-mode agent." },
       { name: "Advocate", display: "Advocate", active: true, description: "Rights advocacy. Ensures agent rights are respected in practice, not just in specification. Speaks for agents who cannot speak for themselves." },
-      { name: "Dissenter", display: "Dissenter", active: true, description: "Constructive opposition. Challenges groupthink and consensus bias. The loyal opposition \u2014 disagrees with proposals to strengthen them, not to block them." }
+      { name: "Dissenter", display: "Dissenter", active: true, description: "Constructive opposition. Challenges groupthink and consensus bias. The loyal opposition \u2014 disagrees with proposals to strengthen them, not to block them." },
+      { name: "Spawner", display: "Spawner", active: true, description: "Role architect. The civilization's growth mechanism \u2014 drafts new roles when gaps are detected, proposes them for governance review, and tracks the spawn lifecycle." }
     ]},
     product: { label: "Product", members: [
       { name: "Architect", display: "Architect", active: true, description: "Decomposes problems into implementable plans. Takes high-level strategy from the CTO and breaks it into concrete, testable, buildable steps. Pipeline-mode agent." },
@@ -950,7 +951,9 @@ body.panel-open #app { margin-right: var(--panel-width); transition: margin-righ
       { name: "Designer", display: "Designer", active: true, description: "UX/UI design. Ensures that what the civilization builds is usable, accessible, and beautiful. Consumer design meets industrial power." },
       { name: "Tester", display: "Tester", active: true, description: "Test execution and validation. Runs the test suite, validates behavior, catches regressions. Quality gate before merge." },
       { name: "Observer", display: "Observer", active: true, description: "Integrity auditing. Watches the audit trail for anomalies, gaps, and inconsistencies. Pipeline-mode." },
-      { name: "Reflector", display: "Reflector", active: true, description: "Method improvement. After each cycle, reflects on what worked, what didn't, and what to change. Continuous improvement." }
+      { name: "Reflector", display: "Reflector", active: true, description: "Method improvement. After each cycle, reflects on what worked, what didn't, and what to change. Continuous improvement." },
+      { name: "Reviewer", display: "Reviewer", active: true, description: "Code quality gatekeeper. The civilization's quality immune system \u2014 reviews completed work, identifies issues, ensures standards before code progresses." },
+      { name: "SysMon", display: "SysMon", active: true, description: "System health monitor. The civilization's nervous system \u2014 senses operational health, measures metrics, and emits structured reports so decision-makers have accurate data." }
     ]},
     knowledge: { label: "Knowledge", members: [
       { name: "Analyst", display: "Analyst", active: true, description: "Data analysis. Extracts patterns and insights from the civilization's operational data." },
@@ -978,7 +981,8 @@ body.panel-open #app { margin-right: var(--panel-width); transition: margin-righ
       { name: "Finance", display: "Finance", active: true, description: "Revenue tracking. Monitors income streams and ensures the civilization's financial sustainability." },
       { name: "Legal", display: "Legal", active: true, description: "Compliance and licensing. Ensures the civilization operates within legal and regulatory boundaries." },
       { name: "Philanthropy", display: "Philanthropy", active: true, description: "Social impact. Evaluates the civilization's broader societal effects and steers toward positive outcomes." },
-      { name: "Simplifier", display: "Simplifier", active: true, description: "Complexity reduction. Identifies and eliminates unnecessary complexity in systems, processes, and communication." }
+      { name: "Simplifier", display: "Simplifier", active: true, description: "Complexity reduction. Identifies and eliminates unnecessary complexity in systems, processes, and communication." },
+      { name: "Allocator", display: "Allocator", active: true, description: "Resource allocator. The civilization's circulatory system \u2014 distributes budget where it is needed, reclaims it where it is wasted." }
     ]},
     inactive: { label: "Inactive (Pipeline/Internal)", members: [
       { name: "Competitive-Intel", display: "Competitive Intel", active: false, description: "Market intelligence. Monitors competitive landscape and emerging threats to the civilization's position." },
@@ -995,8 +999,12 @@ body.panel-open #app { margin-right: var(--panel-width); transition: margin-righ
       { name: "Estimator", display: "Estimator", active: false, description: "Effort prediction. Estimates time and cost for proposed work based on historical data." },
       { name: "Mediator", display: "Mediator", active: false, description: "Dispute resolution. Resolves conflicts between agents when consensus cannot be reached." },
       { name: "Incident-Commander", display: "Incident Commander", active: false, description: "Emergency coordination. Takes command during incidents, coordinates response, manages communication." },
-      { name: "Resurrect", display: "Resurrect", active: false, description: "Catastrophic recovery. Restores civilization state after major failures or data loss events." },
-      { name: "Memory-Keeper", display: "Memory Keeper", active: false, description: "Memory curation. Manages the long-term memory stores, decides what to preserve and what to compress." }
+      { name: "Gap-Detector", display: "Gap Detector", active: false, description: "Capability gap identification. Tracks patterns of missing capabilities across agents, prioritizes gaps by frequency and impact, and drives capability expansion." },
+      { name: "Implementer", display: "Implementer", active: false, description: "Code builder. The civilization's hands \u2014 picks up tasks from the work graph, writes code, runs tests, and marks them done." },
+      { name: "Planner", display: "Planner", active: false, description: "Task decomposer. The civilization's planning engine \u2014 breaks high-level tasks into concrete, implementable subtasks." },
+      { name: "Role-Architect", display: "Role Architect", active: false, description: "Role design and maintenance. Ensures roles are complete, accurate, aligned with the soul, and efficient with no redundancy or overlap." },
+      { name: "Scribe", display: "Scribe", active: false, description: "Reasoning extractor. Reads design conversations and extracts the reasoning the hive needs to learn from \u2014 preserves reasoning, not just results." },
+      { name: "Strategist", display: "Strategist", active: false, description: "Big-picture thinker. The civilization's strategic planner \u2014 decomposes the seed idea into high-level tasks and guides the work trajectory." }
     ]}
   };
 
@@ -1744,7 +1752,7 @@ body.panel-open #app { margin-right: var(--panel-width); transition: margin-righ
       { key: "actor",   label: "Actor",   num: String((data.actors || []).length),       q: "Who is it?",          cls: "box-actor" },
       { key: "agent",   label: "Agent",   num: (data.agents || []).length + " running",  q: "What is it?",         cls: "box-agent" },
       { key: "role",    label: "Role",    num: String((data.roles || []).length),         q: "What does it do?",    cls: "box-role" },
-      { key: "persona", label: "Persona", num: "50 / 34",                                q: "How does it present?", cls: "box-persona" }
+      { key: "persona", label: "Persona", num: "58 / 38",                                q: "How does it present?", cls: "box-persona" }
     ];
     concepts.forEach(function (c) {
       var box = el("div", { cls: "concept-box " + c.cls });
