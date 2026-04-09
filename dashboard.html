@@ -2203,7 +2203,7 @@ body.panel-open #app { margin-right: var(--panel-width); transition: margin-righ
       sec.appendChild(header);
       var grid = el("div", { cls: "role-grid" });
       list.forEach(function (r) {
-        var agent = findAgent(r.name), ms = agent ? shortModel(agent.model) : "";
+        var agent = findAgent(r.role) || findAgent(r.name), ms = agent ? shortModel(agent.model) : "";
         var effectiveStatus = agent ? "running" : (r.status || "missing");
         var chip = el("div", { cls: "role-chip" }); chip.setAttribute("data-role", r.name || "");
         append(chip, statusDotEl(effectiveStatus), el("span", { cls: "rc-name", text: r.name || "" }));
@@ -2221,7 +2221,7 @@ body.panel-open #app { margin-right: var(--panel-width); transition: margin-righ
     if (!archData) return;
     var role = findRole(roleName);
     if (!role) { openArchPanel("role", roleName, roleName, el("div", { cls: "data-empty", text: "Role not found" })); return; }
-    var agent = findAgent(roleName), frag = document.createDocumentFragment();
+    var agent = findAgent(role.role) || findAgent(roleName), frag = document.createDocumentFragment();
     // Back link to All Roles list
     var back = el("button", { cls: "panel-back", text: "\u2190 Back to All Roles" });
     back.addEventListener("click", function () { openConceptPanel("role"); });
