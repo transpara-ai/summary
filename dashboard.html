@@ -2221,7 +2221,12 @@ body.panel-open #app { margin-right: var(--panel-width); transition: margin-righ
     var back = el("button", { cls: "panel-back", text: "\u2190 Back to All Roles" });
     back.addEventListener("click", function () { openConceptPanel("role"); });
     frag.appendChild(back);
-    var ov = [makeRow("Tier", tierBadgeEl(role.tier || "?")), makeRow("Status", statusBadgeEl(role.status)), makeRow("Origin", role.origin ? originBadgeEl(role.origin) : "\u2014"), makeRow("Purpose", role.purpose || "\u2014"), makeRow("Category", role.category || "\u2014"), makeRow("Has prompt", role.has_prompt ? "Yes" : "No"), makeRow("Has persona", role.has_persona ? "Yes" : "No")];
+    var phaseVal;
+    if (role.phase != null) {
+      var ph = findPhase(role.phase), pl = ph ? "Phase " + role.phase + " \u2014 " + ph.label : "Phase " + role.phase;
+      phaseVal = crossLink(pl, "data-open-phase", String(role.phase));
+    } else { phaseVal = "\u2014"; }
+    var ov = [makeRow("Tier", tierBadgeEl(role.tier || "?")), makeRow("Status", statusBadgeEl(role.status)), makeRow("Origin", role.origin ? originBadgeEl(role.origin) : "\u2014"), makeRow("Phase", phaseVal), makeRow("Purpose", role.purpose || "\u2014"), makeRow("Category", role.category || "\u2014"), makeRow("Has prompt", role.has_prompt ? "Yes" : "No"), makeRow("Has persona", role.has_persona ? "Yes" : "No")];
     if (role.graduated) ov.push(makeRow("Graduated", role.graduated));
     frag.appendChild(makeSection("Overview", ov));
     if (role.model || role.can_operate != null || role.max_iterations) {
@@ -2239,10 +2244,6 @@ body.panel-open #app { margin-right: var(--panel-width); transition: margin-righ
     if (role.watch_patterns && role.watch_patterns.length) {
       var ul = el("ul", { cls: "watch-list" }); role.watch_patterns.forEach(function (w) { ul.appendChild(el("li", { text: w })); });
       frag.appendChild(makeSection("Watch Patterns", ul));
-    }
-    if (role.phase != null) {
-      var ph = findPhase(role.phase), pl = ph ? "Phase " + role.phase + " \u2014 " + ph.label : "Phase " + role.phase;
-      frag.appendChild(makeSection("Phase", crossLink(pl, "data-open-phase", String(role.phase))));
     }
     if (role.dependencies && role.dependencies.length) {
       var depRows = role.dependencies.map(function (dep) {
