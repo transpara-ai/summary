@@ -493,6 +493,12 @@ body {
   font-family: var(--mono); font-size: 9px; padding: 1px 5px; border-radius: 3px;
   background: rgba(168,85,247,0.12); color: var(--purple); white-space: nowrap;
 }
+.rc-origin {
+  font-size: 9px; font-weight: 600; padding: 1px 5px; border-radius: 3px;
+  text-transform: uppercase; letter-spacing: 0.03em; white-space: nowrap;
+  background: rgba(100,116,139,0.12); color: var(--gray);
+}
+.rc-origin-spawned { background: rgba(34,197,94,0.12); color: var(--green); }
 .legend { display: flex; gap: 1rem; margin-bottom: 1.25rem; flex-wrap: wrap; }
 .legend-item { display: flex; align-items: center; gap: 5px; font-size: 11px; color: var(--text-sec); }
 .legend-item .dot { width: 7px; height: 7px; border-radius: 50%; flex-shrink: 0; }
@@ -1122,6 +1128,11 @@ body.panel-open #app { margin-right: var(--panel-width); transition: margin-righ
 
   function tierBadgeEl(tier) {
     return el("span", { cls: "tier-badge tier-badge-" + (tier || "?"), text: "Tier " + (tier || "?") });
+  }
+
+  function originBadgeEl(origin) {
+    var o = origin || "bootstrap";
+    return el("span", { cls: "rc-origin rc-origin-" + o, text: o });
   }
 
   function crossLink(text, dataAttr, dataVal) {
@@ -1854,6 +1865,12 @@ body.panel-open #app { margin-right: var(--panel-width); transition: margin-righ
           else if (astatus === "memorial") { sc.appendChild(el("span", { text: "memorial", style: { color: "var(--gray)" } })); }
           else { sc.appendChild(document.createTextNode(astatus || "\u2014")); }
           tr.appendChild(sc);
+          var oc = el("td");
+          var role = findRole(name);
+          if (role && role.origin) { oc.appendChild(originBadgeEl(role.origin)); }
+          else if (atype === "human") { oc.appendChild(document.createTextNode("\u2014")); }
+          else { oc.appendChild(originBadgeEl("bootstrap")); }
+          tr.appendChild(oc);
           return tr;
         }
 
@@ -1865,13 +1882,13 @@ body.panel-open #app { margin-right: var(--panel-width); transition: margin-righ
           header.setAttribute("data-open-phase", String(pn));
           frag.appendChild(header);
           var rows = g.actors.map(actorRow);
-          frag.appendChild(makeTable(["Name", "Type", "Status"], rows));
+          frag.appendChild(makeTable(["Name", "Type", "Status", "Origin"], rows));
         });
 
         // System actors
         if (systemActors.length) {
           frag.appendChild(el("div", { cls: "p-section-title", text: "System" }));
-          frag.appendChild(makeTable(["Name", "Type", "Status"], systemActors.map(actorRow)));
+          frag.appendChild(makeTable(["Name", "Type", "Status", "Origin"], systemActors.map(actorRow)));
         }
       }
     }
@@ -2179,6 +2196,7 @@ body.panel-open #app { margin-right: var(--panel-width); transition: margin-righ
         var chip = el("div", { cls: "role-chip" }); chip.setAttribute("data-role", r.name || "");
         append(chip, statusDotEl(effectiveStatus), el("span", { cls: "rc-name", text: r.name || "" }));
         if (ms) chip.appendChild(el("span", { cls: "rc-model", text: ms }));
+        if (r.origin === "spawned") chip.appendChild(originBadgeEl(r.origin));
         chip.addEventListener("click", function () { openRolePanel(r.name); });
         grid.appendChild(chip);
       });
@@ -2196,7 +2214,7 @@ body.panel-open #app { margin-right: var(--panel-width); transition: margin-righ
     var back = el("button", { cls: "panel-back", text: "\u2190 Back to All Roles" });
     back.addEventListener("click", function () { openConceptPanel("role"); });
     frag.appendChild(back);
-    var ov = [makeRow("Tier", tierBadgeEl(role.tier || "?")), makeRow("Status", statusBadgeEl(role.status)), makeRow("Purpose", role.purpose || "\u2014"), makeRow("Category", role.category || "\u2014"), makeRow("Has prompt", role.has_prompt ? "Yes" : "No"), makeRow("Has persona", role.has_persona ? "Yes" : "No")];
+    var ov = [makeRow("Tier", tierBadgeEl(role.tier || "?")), makeRow("Status", statusBadgeEl(role.status)), makeRow("Origin", role.origin ? originBadgeEl(role.origin) : "\u2014"), makeRow("Purpose", role.purpose || "\u2014"), makeRow("Category", role.category || "\u2014"), makeRow("Has prompt", role.has_prompt ? "Yes" : "No"), makeRow("Has persona", role.has_persona ? "Yes" : "No")];
     if (role.graduated) ov.push(makeRow("Graduated", role.graduated));
     frag.appendChild(makeSection("Overview", ov));
     if (role.model || role.can_operate != null || role.max_iterations) {
