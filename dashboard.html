@@ -1255,25 +1255,25 @@ body.panel-open #app { margin-right: var(--panel-width); transition: margin-righ
     pollController = new AbortController();
 
     var opts = makeFetchOpts(pollController);
-    // Fetch roles in parallel for phase dot colors
-    fetch(API_BASE + "/telemetry/roles", opts)
+    var rolesP = fetch(API_BASE + "/telemetry/roles", opts)
       .then(function (res) { return res.ok ? res.json() : null; })
-      .then(function (roles) {
-        if (!roles) return;
+      .catch(function () { return null; });
+    var statusP = fetch(API_BASE + "/telemetry/status", opts)
+      .then(function (res) {
+        if (res.status === 503) { setConnStatus("stale", "Telemetry not initialized"); return null; }
+        if (!res.ok) throw new Error("HTTP " + res.status);
+        return res.json();
+      });
+
+    Promise.all([statusP, rolesP])
+    .then(function (results) {
+      var data = results[0], roles = results[1];
+      if (!data) return;
+      if (roles) {
         var m = {};
         roles.forEach(function (r) { if (r.role) m[r.role.toLowerCase()] = r.status || "missing"; });
         roleStatusMap = m;
-      })
-      .catch(function () {});
-
-    fetch(API_BASE + "/telemetry/status", opts)
-    .then(function (res) {
-      if (res.status === 503) { setConnStatus("stale", "Telemetry not initialized"); return null; }
-      if (!res.ok) throw new Error("HTTP " + res.status);
-      return res.json();
-    })
-    .then(function (data) {
-      if (!data) return;
+      }
       lastSuccess = Date.now();
       opsConsecutiveFails = 0;
       setConnStatus("connected", "Live");
