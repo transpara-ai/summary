@@ -1331,7 +1331,6 @@ body.panel-open #app { margin-right: var(--panel-width); transition: margin-righ
         var dotsRow = el("div", { cls: "phase-agent-dots" });
         phaseAgents.forEach(function (role) {
           var alive = liveRoles[role];
-          if (!alive && status === "complete") alive = true;
           if (!alive && archData && archData.roles) {
             for (var ri = 0; ri < archData.roles.length; ri++) {
               var rd = archData.roles[ri];
