@@ -1036,6 +1036,11 @@ body.panel-open #app { margin-right: var(--panel-width); transition: margin-righ
     bindEventFilter();
     document.getElementById("task-pane-close").addEventListener("click", closeTaskPane);
     setInterval(tickClock, 1000);
+    // Prefetch overview so role definitions are available for ops phase dots
+    fetch(API_BASE + "/telemetry/overview", makeFetchOpts(new AbortController()))
+      .then(function (res) { return res.ok ? res.json() : null; })
+      .then(function (data) { if (data) archData = data; })
+      .catch(function () {});
     // Start ops polling (default view)
     startOpsPolling();
   }
