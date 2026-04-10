@@ -905,6 +905,7 @@ body.panel-open #app { margin-right: var(--panel-width); transition: margin-righ
   var activeView   = "ops";
   var opsData      = null;
   var archData     = null;
+  var roleStatusMap = {}; // role key → status string, refreshed each ops poll
   var opsLastFetch = 0;
   var archLastFetch = 0;
   var opsInterval  = null;
@@ -1036,11 +1037,6 @@ body.panel-open #app { margin-right: var(--panel-width); transition: margin-righ
     bindEventFilter();
     document.getElementById("task-pane-close").addEventListener("click", closeTaskPane);
     setInterval(tickClock, 1000);
-    // Prefetch overview so role definitions are available for ops phase dots
-    fetch(API_BASE + "/telemetry/overview", makeFetchOpts(new AbortController()))
-      .then(function (res) { return res.ok ? res.json() : null; })
-      .then(function (data) { if (data) archData = data; })
-      .catch(function () {});
     // Start ops polling (default view)
     startOpsPolling();
   }
@@ -1258,7 +1254,19 @@ body.panel-open #app { margin-right: var(--panel-width); transition: margin-righ
     if (pollController) pollController.abort();
     pollController = new AbortController();
 
-    fetch(API_BASE + "/telemetry/status", makeFetchOpts(pollController))
+    var opts = makeFetchOpts(pollController);
+    // Fetch roles in parallel for phase dot colors
+    fetch(API_BASE + "/telemetry/roles", opts)
+      .then(function (res) { return res.ok ? res.json() : null; })
+      .then(function (roles) {
+        if (!roles) return;
+        var m = {};
+        roles.forEach(function (r) { if (r.role) m[r.role.toLowerCase()] = r.status || "missing"; });
+        roleStatusMap = m;
+      })
+      .catch(function () {});
+
+    fetch(API_BASE + "/telemetry/status", opts)
     .then(function (res) {
       if (res.status === 503) { setConnStatus("stale", "Telemetry not initialized"); return null; }
       if (!res.ok) throw new Error("HTTP " + res.status);
@@ -1339,14 +1347,9 @@ body.panel-open #app { margin-right: var(--panel-width); transition: margin-righ
         phaseAgents.forEach(function (role) {
           var dotStatus = "missing";
           if (liveRoles[role]) { dotStatus = "alive"; }
-          else if (archData && archData.roles) {
-            for (var ri = 0; ri < archData.roles.length; ri++) {
-              var rd = archData.roles[ri];
-              if ((rd.role || "").toLowerCase() === role) {
-                dotStatus = rd.status === "running" ? "alive" : (rd.status || "missing");
-                break;
-              }
-            }
+          else {
+            var rs = roleStatusMap[role];
+            if (rs) dotStatus = rs === "running" ? "alive" : rs;
           }
           dotsRow.appendChild(el("div", { cls: "phase-agent-dot " + dotStatus, title: role }));
         });
