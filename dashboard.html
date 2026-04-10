@@ -217,6 +217,8 @@ body {
 .phase-agent-dots { display: flex; gap: 3px; justify-content: center; margin-top: 4px; }
 .phase-agent-dot { width: 6px; height: 6px; border-radius: 50%; background: var(--gray); }
 .phase-agent-dot.alive { background: var(--green); }
+.phase-agent-dot.defined { background: var(--amber); }
+.phase-agent-dot.designed { background: var(--gray); }
 .phase-agent-dot.missing { background: var(--red); }
 
 /* Agent grid (ops) */
@@ -1330,14 +1332,18 @@ body.panel-open #app { margin-right: var(--panel-width); transition: margin-righ
       if (phaseAgents && (status === "complete" || status === "in_progress")) {
         var dotsRow = el("div", { cls: "phase-agent-dots" });
         phaseAgents.forEach(function (role) {
-          var alive = liveRoles[role];
-          if (!alive && archData && archData.roles) {
+          var dotStatus = "missing";
+          if (liveRoles[role]) { dotStatus = "alive"; }
+          else if (archData && archData.roles) {
             for (var ri = 0; ri < archData.roles.length; ri++) {
               var rd = archData.roles[ri];
-              if ((rd.role || "").toLowerCase() === role && rd.status === "running") { alive = true; break; }
+              if ((rd.role || "").toLowerCase() === role) {
+                dotStatus = rd.status === "running" ? "alive" : (rd.status || "missing");
+                break;
+              }
             }
           }
-          dotsRow.appendChild(el("div", { cls: "phase-agent-dot " + (alive ? "alive" : "missing"), title: role }));
+          dotsRow.appendChild(el("div", { cls: "phase-agent-dot " + dotStatus, title: role }));
         });
         info.appendChild(dotsRow);
       }
