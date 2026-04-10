@@ -1330,7 +1330,15 @@ body.panel-open #app { margin-right: var(--panel-width); transition: margin-righ
       if (phaseAgents && (status === "complete" || status === "in_progress")) {
         var dotsRow = el("div", { cls: "phase-agent-dots" });
         phaseAgents.forEach(function (role) {
-          dotsRow.appendChild(el("div", { cls: "phase-agent-dot " + (liveRoles[role] ? "alive" : "missing"), title: role }));
+          var alive = liveRoles[role];
+          if (!alive && status === "complete") alive = true;
+          if (!alive && archData && archData.roles) {
+            for (var ri = 0; ri < archData.roles.length; ri++) {
+              var rd = archData.roles[ri];
+              if ((rd.role || "").toLowerCase() === role && rd.status === "running") { alive = true; break; }
+            }
+          }
+          dotsRow.appendChild(el("div", { cls: "phase-agent-dot " + (alive ? "alive" : "missing"), title: role }));
         });
         info.appendChild(dotsRow);
       }
