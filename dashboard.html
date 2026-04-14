@@ -195,26 +195,38 @@ body {
   background: var(--blue); border-color: var(--blue); animation: pulse-blue 2s ease-in-out infinite;
 }
 .ops-phase-item.blocked .ops-phase-dot { opacity: 0.4; }
+.ops-phase-item.selected .ops-phase-dot { border-color: var(--blue); box-shadow: 0 0 0 2px rgba(59,130,246,0.3); }
 @keyframes pulse-blue {
   0%, 100% { box-shadow: 0 0 0 0 rgba(59,130,246,0.5); }
   50%      { box-shadow: 0 0 0 5px rgba(59,130,246,0); }
 }
 .ops-phase-num { font-size: 10px; font-weight: 700; color: #fff; line-height: 1; }
-.ops-phase-info { text-align: center; margin-top: 0.5rem; }
+.ops-phase-info { text-align: center; margin-top: 0.5rem; display: flex; flex-direction: column; align-items: center; }
+.ops-phase-row { display: flex; align-items: center; justify-content: center; width: 100%; }
+.ops-phase-row-name { height: 30px; }
+.ops-phase-row-tier { height: 16px; }
+.ops-phase-row-date { height: 16px; }
+.ops-phase-row-status { height: 20px; }
+.ops-phase-row-dots { height: 14px; }
 .ops-phase-name {
   font-size: 11px; font-weight: 500; color: var(--text);
-  text-align: center; line-height: 1.3; word-wrap: break-word; max-width: 120px;
+  text-align: center; line-height: 1.3; overflow: hidden; max-width: 120px;
+  display: -webkit-box; -webkit-line-clamp: 2; -webkit-box-orient: vertical;
 }
 .ops-phase-item.blocked .ops-phase-name { color: var(--text-sec); }
-.ops-phase-ts { font-family: var(--mono); font-size: 10px; color: var(--text-dim); margin-top: 2px; }
+.ops-phase-tier {
+  font-size: 9px; font-weight: 600; text-transform: uppercase; letter-spacing: 0.05em;
+  color: var(--text-dim);
+}
+.ops-phase-ts { font-family: var(--mono); font-size: 10px; color: var(--text-dim); }
 .phase-status-badge {
   display: inline-block; font-size: 9px; font-weight: 600; text-transform: uppercase;
-  letter-spacing: 0.05em; padding: 1px 5px; border-radius: 3px; margin-top: 3px;
+  letter-spacing: 0.05em; padding: 1px 5px; border-radius: 3px;
 }
 .phase-status-badge.complete    { background: rgba(34,197,94,0.15);  color: var(--green); }
 .phase-status-badge.in_progress { background: rgba(59,130,246,0.15); color: var(--blue); }
 .phase-status-badge.blocked     { background: rgba(100,116,139,0.15); color: var(--gray); }
-.phase-agent-dots { display: flex; gap: 3px; justify-content: center; margin-top: 4px; }
+.phase-agent-dots { display: flex; gap: 3px; justify-content: center; }
 .phase-agent-dot { width: 6px; height: 6px; border-radius: 50%; background: var(--gray); cursor: pointer; transition: transform 0.15s; display: inline-block; text-decoration: none; }
 .phase-agent-dot:hover { transform: scale(1.8); }
 .phase-agent-dot.alive { background: var(--green); }
@@ -925,6 +937,8 @@ body.panel-open #app { margin-right: var(--panel-width); transition: margin-righ
 
   // Ops-specific state
   var selectedOpsAgent = null; // role name of agent shown in detail panel
+  var selectedOpsPhase = null; // phase number shown in detail panel
+  var lastOpsPhases = [];      // cached for panel refresh
 
   var PHASE_AGENTS = {
     0: ["guardian", "strategist", "planner", "implementer"],
@@ -937,7 +951,8 @@ body.panel-open #app { margin-right: var(--panel-width); transition: margin-righ
     7: ["philosopher", "rolearchitect", "harmony", "politician"],
     8: []
   };
-  // Canonical agent definitions live in the upstream org (lovyou-ai), not the fork
+  var PHASE_TIER = { 0: "A", 1: "A", 2: "B", 3: "B", 4: "C", 5: "C", 6: "D", 7: "D", 8: "D" };
+  // Agent definitions live in the lovyou-ai org on GitHub
   var AGENT_MD_BASE = "https://github.com/lovyou-ai/hive/blob/main/agents/";
   var AGENT_MD_NAME = {
     guardian: "guardian", strategist: "strategist", planner: "planner", implementer: "implementer",
@@ -1316,7 +1331,7 @@ body.panel-open #app { margin-right: var(--panel-width); transition: margin-righ
       renderHive(data.hive || null, lastAgents);
       renderChainAlert(data.hive || null);
       renderEvents(lastEvents);
-      // Restore agent detail panel if one was open
+      // Restore detail panel if one was open
       if (selectedOpsAgent) {
         var ag = null;
         for (var i = 0; i < lastAgents.length; i++) {
@@ -1324,6 +1339,17 @@ body.panel-open #app { margin-right: var(--panel-width); transition: margin-righ
         }
         if (ag) showOpsAgentPanel(ag, true);
         else { selectedOpsAgent = null; closeDetailPanel(); }
+      } else if (selectedOpsPhase != null) {
+        var liveRoles = {};
+        lastAgents.forEach(function (a) {
+          var r = (a.role || "").toLowerCase(), s = (a.state || "").toLowerCase();
+          if (r && s !== "retired") liveRoles[r] = true;
+        });
+        var found = false;
+        for (var i = 0; i < lastOpsPhases.length; i++) {
+          if (lastOpsPhases[i].phase === selectedOpsPhase) { showOpsPhasePanel(lastOpsPhases[i], liveRoles, true); found = true; break; }
+        }
+        if (!found) { selectedOpsPhase = null; closeDetailPanel(); }
       }
     })
     .catch(function (err) {
@@ -1357,20 +1383,50 @@ body.panel-open #app { margin-right: var(--panel-width); transition: margin-righ
       var state = (a.state || "").toLowerCase();
       if (role && state !== "retired") liveRoles[role] = true;
     });
+    lastOpsPhases = phases;
     phases.forEach(function (p) {
       var status = p.status || "blocked";
       var item = el("div", { cls: "ops-phase-item " + status });
+      item.style.cursor = "pointer";
+      item.addEventListener("click", function (e) {
+        if (e.target.closest("a")) return; // let agent dot links through
+        var live = {};
+        lastAgents.forEach(function (a) {
+          var r = (a.role || "").toLowerCase(), s = (a.state || "").toLowerCase();
+          if (r && s !== "retired") live[r] = true;
+        });
+        showOpsPhasePanel(p, live);
+      });
       var dot = el("div", { cls: "ops-phase-dot" });
       dot.appendChild(el("span", { cls: "ops-phase-num", text: p.phase }));
       item.appendChild(dot);
       var info = el("div", { cls: "ops-phase-info" });
-      var name = el("div", { cls: "ops-phase-name", text: p.label || "Phase " + p.phase, title: p.label || "" });
-      info.appendChild(name);
+
+      // Row 1: Name (fixed 30px, up to 2 lines)
+      var nameRow = el("div", { cls: "ops-phase-row ops-phase-row-name" });
+      nameRow.appendChild(el("div", { cls: "ops-phase-name", text: p.label || "Phase " + p.phase, title: p.label || "" }));
+      info.appendChild(nameRow);
+
+      // Row 2: Tier label
+      var tierRow = el("div", { cls: "ops-phase-row ops-phase-row-tier" });
+      var tl = PHASE_TIER[p.phase]; tierRow.appendChild(el("span", { cls: "ops-phase-tier", text: tl ? "Tier " + tl : "" }));
+      info.appendChild(tierRow);
+
+      // Row 3: Date
+      var dateRow = el("div", { cls: "ops-phase-row ops-phase-row-date" });
       var ts = "";
       if (status === "complete" && p.completed_at) ts = fmtDate(p.completed_at);
       if (status === "in_progress" && p.started_at) ts = "since " + fmtDate(p.started_at);
-      if (ts) info.appendChild(el("div", { cls: "ops-phase-ts", text: ts }));
-      info.appendChild(el("span", { cls: "phase-status-badge " + status, text: status.replace("_", " ") }));
+      if (ts) dateRow.appendChild(el("div", { cls: "ops-phase-ts", text: ts }));
+      info.appendChild(dateRow);
+
+      // Row 4: Status badge
+      var statusRow = el("div", { cls: "ops-phase-row ops-phase-row-status" });
+      statusRow.appendChild(el("span", { cls: "phase-status-badge " + status, text: status.replace("_", " ") }));
+      info.appendChild(statusRow);
+
+      // Row 5: Agent dots
+      var dotsRowWrap = el("div", { cls: "ops-phase-row ops-phase-row-dots" });
       var phaseAgents = PHASE_AGENTS[p.phase];
       if (phaseAgents && phaseAgents.length) {
         var dotsRow = el("div", { cls: "phase-agent-dots" });
@@ -1397,8 +1453,10 @@ body.panel-open #app { margin-right: var(--panel-width); transition: margin-righ
           }
           dotsRow.appendChild(dotEl);
         });
-        info.appendChild(dotsRow);
+        dotsRowWrap.appendChild(dotsRow);
       }
+      info.appendChild(dotsRowWrap);
+
       item.appendChild(info);
       container.appendChild(item);
     });
@@ -1580,6 +1638,7 @@ body.panel-open #app { margin-right: var(--panel-width); transition: margin-righ
   // ── OPS: Agent Detail Panel ─────────────────────────
   function showOpsAgentPanel(a, isRefresh) {
     selectedOpsAgent = a.role;
+    selectedOpsPhase = null;
     // Highlight selected card
     document.querySelectorAll(".agent-card").forEach(function (c) { c.classList.remove("selected"); });
     // Find the card for this agent by role name
@@ -1636,11 +1695,96 @@ body.panel-open #app { margin-right: var(--panel-width); transition: margin-righ
     if (isRefresh && document.body.classList.contains("panel-open")) {
       // Just update content without re-animating
       document.getElementById("panel-title").textContent = a.role || "Agent";
-      var body = document.getElementById("panel-body");
-      while (body.firstChild) body.removeChild(body.firstChild);
-      body.appendChild(frag);
+      clearEl("panel-body").appendChild(frag);
     } else {
       openArchPanel("ops-agent", a.role, a.role || "Agent", frag);
+    }
+  }
+
+  // ── OPS: Phase Detail Panel ─────────────────────────
+  function showOpsPhasePanel(p, liveRoles, isRefresh) {
+    var phaseNum = p.phase;
+    if (!isRefresh && selectedOpsPhase === phaseNum) { selectedOpsPhase = null; closeDetailPanel(); return; }
+    selectedOpsPhase = phaseNum;
+    if (!isRefresh) selectedOpsAgent = null;
+    // Highlight selected phase item
+    document.querySelectorAll(".ops-phase-item.selected").forEach(function (e) { e.classList.remove("selected"); });
+    document.querySelectorAll(".ops-phase-item").forEach(function (e) {
+      if (e.querySelector(".ops-phase-num") && e.querySelector(".ops-phase-num").textContent == phaseNum) e.classList.add("selected");
+    });
+
+    var status = p.status || "blocked";
+    var tier = PHASE_TIER[phaseNum] || "?";
+    var frag = document.createDocumentFragment();
+
+    // Overview section
+    var ov = [
+      makeRow("Status", statusBadgeEl(status)),
+      makeRow("Tier", tierBadgeEl(tier))
+    ];
+    if (status === "complete" && p.completed_at) ov.push(makeRow("Completed", fmtDate(p.completed_at)));
+    if (status === "in_progress" && p.started_at) ov.push(makeRow("Started", fmtDate(p.started_at)));
+    if (p.exit_criteria) ov.push(makeRow("Exit Criteria", p.exit_criteria));
+    frag.appendChild(makeSection("Overview", ov));
+
+    // Notes / description
+    if (p.notes || p.description) {
+      var desc = el("div", { style: { fontSize: "12px", lineHeight: "1.5", color: "var(--text-sec)" } });
+      desc.textContent = p.notes || p.description;
+      frag.appendChild(makeSection("Description", desc));
+    }
+
+    // Agent roster with names and status dots
+    var phaseAgents = PHASE_AGENTS[phaseNum];
+    if (phaseAgents && phaseAgents.length) {
+      var agentRows = phaseAgents.map(function (role) {
+        var dotStatus = "missing";
+        if (liveRoles && liveRoles[role]) { dotStatus = "alive"; }
+        else {
+          var rs = roleStatusMap[role];
+          if (rs) dotStatus = rs === "running" ? "alive" : rs;
+        }
+        if (dotStatus === "missing" && (status === "blocked" || AGENT_MD_NAME[role] === null))
+          dotStatus = "designed";
+        var row = el("div", { cls: "p-row", style: { cursor: "default" } });
+        var lbl = el("span", { cls: "p-label", style: { display: "flex", alignItems: "center", gap: "6px", minWidth: "auto" } });
+        var dotEl = el("span", { style: { width: "6px", height: "6px", borderRadius: "50%", display: "inline-block", flexShrink: "0" } });
+        dotEl.style.background = dotStatus === "alive" ? "var(--green)" : dotStatus === "designed" ? "var(--gray)" : dotStatus === "missing" ? "var(--red)" : "var(--gray)";
+        lbl.appendChild(dotEl);
+        lbl.appendChild(document.createTextNode(role));
+        row.appendChild(lbl);
+        var val = el("span", { cls: "p-val" });
+        val.appendChild(statusBadgeEl(dotStatus));
+        var url = agentMdUrl(role);
+        if (url) {
+          var link = document.createElement("a");
+          link.href = url; link.target = "_blank"; link.rel = "noopener";
+          link.textContent = " view def";
+          link.style.cssText = "font-size:10px;color:var(--blue);margin-left:0.5rem;text-decoration:none";
+          val.appendChild(link);
+        }
+        row.appendChild(val);
+        return row;
+      });
+      frag.appendChild(makeSection("Agents (" + phaseAgents.length + ")", agentRows));
+    }
+
+    // Purpose from rolePurposeMap for each agent
+    if (phaseAgents && phaseAgents.length) {
+      var purposes = [];
+      phaseAgents.forEach(function (role) {
+        var purpose = rolePurposeMap[role];
+        if (purpose) purposes.push(makeRow(role, purpose));
+      });
+      if (purposes.length) frag.appendChild(makeSection("Agent Purposes", purposes));
+    }
+
+    var title = "Phase " + phaseNum + ": " + (p.label || "");
+    if (isRefresh && document.body.classList.contains("panel-open")) {
+      document.getElementById("panel-title").textContent = title;
+      clearEl("panel-body").appendChild(frag);
+    } else {
+      openArchPanel("ops-phase", phaseNum, title, frag);
     }
   }
 
@@ -1777,8 +1921,9 @@ body.panel-open #app { margin-right: var(--panel-width); transition: margin-righ
   function closeDetailPanel() {
     currentPanel = null;
     selectedOpsAgent = null;
+    selectedOpsPhase = null;
     document.body.classList.remove("panel-open");
-    document.querySelectorAll(".agent-card.selected").forEach(function (c) { c.classList.remove("selected"); });
+    document.querySelectorAll(".agent-card.selected, .ops-phase-item.selected").forEach(function (c) { c.classList.remove("selected"); });
     updateArchActive();
   }
 
