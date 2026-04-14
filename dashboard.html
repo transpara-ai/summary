@@ -227,7 +227,7 @@ body {
 .phase-status-badge.in_progress { background: rgba(59,130,246,0.15); color: var(--blue); }
 .phase-status-badge.blocked     { background: rgba(100,116,139,0.15); color: var(--gray); }
 .phase-agent-dots { display: flex; gap: 3px; justify-content: center; }
-.phase-agent-dot { width: 6px; height: 6px; border-radius: 50%; background: var(--gray); cursor: pointer; transition: transform 0.15s; display: inline-block; text-decoration: none; }
+.phase-agent-dot { width: 6px; height: 6px; border-radius: 50%; background: var(--gray); cursor: pointer; transition: transform 0.15s; }
 .phase-agent-dot:hover { transform: scale(1.8); }
 .phase-agent-dot.alive { background: var(--green); }
 .phase-agent-dot.defined { background: var(--amber); }
@@ -1389,7 +1389,7 @@ body.panel-open #app { margin-right: var(--panel-width); transition: margin-righ
       var item = el("div", { cls: "ops-phase-item " + status });
       item.style.cursor = "pointer";
       item.addEventListener("click", function (e) {
-        if (e.target.closest("a")) return; // let agent dot links through
+        if (e.target.closest(".phase-agent-dot")) return; // dots have own handlers
         var live = {};
         lastAgents.forEach(function (a) {
           var r = (a.role || "").toLowerCase(), s = (a.state || "").toLowerCase();
@@ -1440,17 +1440,13 @@ body.panel-open #app { margin-right: var(--panel-width); transition: margin-righ
           // Known but not yet defined/built — show gray, not red
           if (dotStatus === "missing" && (status === "blocked" || AGENT_MD_NAME[role] === null))
             dotStatus = "designed";
-          var url = agentMdUrl(role);
-          var dotEl;
-          if (url) {
-            dotEl = document.createElement("a");
-            dotEl.href = url; dotEl.target = "_blank"; dotEl.rel = "noopener";
-            dotEl.className = "phase-agent-dot " + dotStatus;
-            dotEl.title = role + " — click to view definition";
-            dotEl.addEventListener("click", function (e) { e.stopPropagation(); });
-          } else {
-            dotEl = el("div", { cls: "phase-agent-dot " + dotStatus, title: role + " (no definition yet)" });
-          }
+          var dotEl = el("div", { cls: "phase-agent-dot " + dotStatus, title: role });
+          dotEl.addEventListener("click", (function (r, ds) {
+            return function (e) {
+              e.stopPropagation();
+              showOpsDotPanel(r, ds, p);
+            };
+          })(role, dotStatus));
           dotsRow.appendChild(dotEl);
         });
         dotsRowWrap.appendChild(dotsRow);
@@ -1786,6 +1782,41 @@ body.panel-open #app { margin-right: var(--panel-width); transition: margin-righ
     } else {
       openArchPanel("ops-phase", phaseNum, title, frag);
     }
+  }
+
+  // ── OPS: Agent Dot Detail Panel ─────────────────────
+  function showOpsDotPanel(role, dotStatus, phase) {
+    // If agent is running, delegate to the full agent panel
+    for (var i = 0; i < lastAgents.length; i++) {
+      if ((lastAgents[i].role || "").toLowerCase() === role) {
+        showOpsAgentPanel(lastAgents[i], false);
+        return;
+      }
+    }
+    // Agent not running — build a minimal panel from what we know
+    selectedOpsPhase = null;
+    selectedOpsAgent = null;
+    var frag = document.createDocumentFragment();
+    var tier = PHASE_TIER[phase.phase] || "?";
+    var ov = [
+      makeRow("Status", statusBadgeEl(dotStatus)),
+      makeRow("Phase", "Phase " + phase.phase + " \u2014 " + (phase.label || "")),
+      makeRow("Tier", tierBadgeEl(tier))
+    ];
+    var purpose = rolePurposeMap[role];
+    if (purpose) ov.push(makeRow("Purpose", purpose));
+    var url = agentMdUrl(role);
+    if (url) {
+      var link = document.createElement("a");
+      link.href = url; link.target = "_blank"; link.rel = "noopener";
+      link.textContent = "View agent definition";
+      link.style.cssText = "font-size:11px;color:var(--blue);text-decoration:none";
+      ov.push(makeRow("Definition", link));
+    } else {
+      ov.push(makeRow("Definition", "Not yet created"));
+    }
+    frag.appendChild(makeSection("Role Overview", ov));
+    openArchPanel("ops-dot", role, role, frag);
   }
 
   // ── OPS: Task Pane ─────────────────────────────────
