@@ -932,6 +932,7 @@ body.panel-open #app { margin-right: var(--panel-width); transition: margin-righ
     7: ["philosopher", "rolearchitect", "harmony", "politician"],
     8: []
   };
+  // Canonical agent definitions live in the upstream org (lovyou-ai), not the fork
   var AGENT_MD_BASE = "https://github.com/lovyou-ai/hive/blob/main/agents/";
   var AGENT_MD_NAME = {
     guardian: "guardian", strategist: "strategist", planner: "planner", implementer: "implementer",
@@ -1362,7 +1363,7 @@ body.panel-open #app { margin-right: var(--panel-width); transition: margin-righ
       if (phaseAgents && phaseAgents.length) {
         var dotsRow = el("div", { cls: "phase-agent-dots" });
         phaseAgents.forEach(function (role) {
-          var dotStatus = "missing";
+          var dotStatus = status === "blocked" ? "designed" : "missing";
           if (liveRoles[role]) { dotStatus = "alive"; }
           else {
             var rs = roleStatusMap[role];
