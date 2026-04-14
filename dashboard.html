@@ -195,6 +195,7 @@ body {
   background: var(--blue); border-color: var(--blue); animation: pulse-blue 2s ease-in-out infinite;
 }
 .ops-phase-item.blocked .ops-phase-dot { opacity: 0.4; }
+.ops-phase-item.selected .ops-phase-dot { border-color: var(--blue); box-shadow: 0 0 0 2px rgba(59,130,246,0.3); }
 @keyframes pulse-blue {
   0%, 100% { box-shadow: 0 0 0 0 rgba(59,130,246,0.5); }
   50%      { box-shadow: 0 0 0 5px rgba(59,130,246,0); }
@@ -1389,7 +1390,12 @@ body.panel-open #app { margin-right: var(--panel-width); transition: margin-righ
       item.style.cursor = "pointer";
       item.addEventListener("click", function (e) {
         if (e.target.closest("a")) return; // let agent dot links through
-        showOpsPhasePanel(p, liveRoles);
+        var live = {};
+        lastAgents.forEach(function (a) {
+          var r = (a.role || "").toLowerCase(), s = (a.state || "").toLowerCase();
+          if (r && s !== "retired") live[r] = true;
+        });
+        showOpsPhasePanel(p, live);
       });
       var dot = el("div", { cls: "ops-phase-dot" });
       dot.appendChild(el("span", { cls: "ops-phase-num", text: p.phase }));
@@ -1689,9 +1695,7 @@ body.panel-open #app { margin-right: var(--panel-width); transition: margin-righ
     if (isRefresh && document.body.classList.contains("panel-open")) {
       // Just update content without re-animating
       document.getElementById("panel-title").textContent = a.role || "Agent";
-      var body = document.getElementById("panel-body");
-      while (body.firstChild) body.removeChild(body.firstChild);
-      body.appendChild(frag);
+      clearEl("panel-body").appendChild(frag);
     } else {
       openArchPanel("ops-agent", a.role, a.role || "Agent", frag);
     }
@@ -1703,6 +1707,11 @@ body.panel-open #app { margin-right: var(--panel-width); transition: margin-righ
     if (!isRefresh && selectedOpsPhase === phaseNum) { selectedOpsPhase = null; closeDetailPanel(); return; }
     selectedOpsPhase = phaseNum;
     if (!isRefresh) selectedOpsAgent = null;
+    // Highlight selected phase item
+    document.querySelectorAll(".ops-phase-item.selected").forEach(function (e) { e.classList.remove("selected"); });
+    document.querySelectorAll(".ops-phase-item").forEach(function (e) {
+      if (e.querySelector(".ops-phase-num") && e.querySelector(".ops-phase-num").textContent == phaseNum) e.classList.add("selected");
+    });
 
     var status = p.status || "blocked";
     var tier = PHASE_TIER[phaseNum] || "?";
@@ -1773,9 +1782,7 @@ body.panel-open #app { margin-right: var(--panel-width); transition: margin-righ
     var title = "Phase " + phaseNum + ": " + (p.label || "");
     if (isRefresh && document.body.classList.contains("panel-open")) {
       document.getElementById("panel-title").textContent = title;
-      var body = document.getElementById("panel-body");
-      while (body.firstChild) body.removeChild(body.firstChild);
-      body.appendChild(frag);
+      clearEl("panel-body").appendChild(frag);
     } else {
       openArchPanel("ops-phase", phaseNum, title, frag);
     }
@@ -1916,7 +1923,7 @@ body.panel-open #app { margin-right: var(--panel-width); transition: margin-righ
     selectedOpsAgent = null;
     selectedOpsPhase = null;
     document.body.classList.remove("panel-open");
-    document.querySelectorAll(".agent-card.selected").forEach(function (c) { c.classList.remove("selected"); });
+    document.querySelectorAll(".agent-card.selected, .ops-phase-item.selected").forEach(function (c) { c.classList.remove("selected"); });
     updateArchActive();
   }
 
