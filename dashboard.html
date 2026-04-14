@@ -950,7 +950,8 @@ body.panel-open #app { margin-right: var(--panel-width); transition: margin-righ
     7: ["philosopher", "rolearchitect", "harmony", "politician"],
     8: []
   };
-  // Canonical agent definitions live in the upstream org (lovyou-ai), not the fork
+  var PHASE_TIER = { 0: "A", 1: "A", 2: "B", 3: "B", 4: "C", 5: "C", 6: "D", 7: "D", 8: "D" };
+  // Agent definitions live in the lovyou-ai org on GitHub
   var AGENT_MD_BASE = "https://github.com/lovyou-ai/hive/blob/main/agents/";
   var AGENT_MD_NAME = {
     guardian: "guardian", strategist: "strategist", planner: "planner", implementer: "implementer",
@@ -1381,7 +1382,6 @@ body.panel-open #app { margin-right: var(--panel-width); transition: margin-righ
       var state = (a.state || "").toLowerCase();
       if (role && state !== "retired") liveRoles[role] = true;
     });
-    var PHASE_TIER = { 0: "Tier A", 1: "Tier A", 2: "Tier B", 3: "Tier B", 4: "Tier C", 5: "Tier C", 6: "Tier D", 7: "Tier D", 8: "Tier D" };
     lastOpsPhases = phases;
     phases.forEach(function (p) {
       var status = p.status || "blocked";
@@ -1403,7 +1403,7 @@ body.panel-open #app { margin-right: var(--panel-width); transition: margin-righ
 
       // Row 2: Tier label
       var tierRow = el("div", { cls: "ops-phase-row ops-phase-row-tier" });
-      tierRow.appendChild(el("span", { cls: "ops-phase-tier", text: PHASE_TIER[p.phase] || "" }));
+      var tl = PHASE_TIER[p.phase]; tierRow.appendChild(el("span", { cls: "ops-phase-tier", text: tl ? "Tier " + tl : "" }));
       info.appendChild(tierRow);
 
       // Row 3: Date
@@ -1698,7 +1698,6 @@ body.panel-open #app { margin-right: var(--panel-width); transition: margin-righ
   }
 
   // ── OPS: Phase Detail Panel ─────────────────────────
-  var OPS_PHASE_TIER = { 0: "A", 1: "A", 2: "B", 3: "B", 4: "C", 5: "C", 6: "D", 7: "D", 8: "D" };
   function showOpsPhasePanel(p, liveRoles, isRefresh) {
     var phaseNum = p.phase;
     if (!isRefresh && selectedOpsPhase === phaseNum) { selectedOpsPhase = null; closeDetailPanel(); return; }
@@ -1706,7 +1705,7 @@ body.panel-open #app { margin-right: var(--panel-width); transition: margin-righ
     if (!isRefresh) selectedOpsAgent = null;
 
     var status = p.status || "blocked";
-    var tier = OPS_PHASE_TIER[phaseNum] || "?";
+    var tier = PHASE_TIER[phaseNum] || "?";
     var frag = document.createDocumentFragment();
 
     // Overview section
