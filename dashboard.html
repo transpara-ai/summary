@@ -177,7 +177,7 @@ body {
   display: flex; align-items: flex-start; gap: 0; overflow-x: auto; padding: 0.5rem 0 0.75rem;
 }
 .ops-phase-item {
-  display: flex; flex-direction: column; align-items: center; flex: 1; min-width: 80px; position: relative;
+  display: flex; flex-direction: column; align-items: center; flex: 1; min-width: 100px; position: relative;
 }
 .ops-phase-item:not(:last-child)::after {
   content: ''; position: absolute; top: 8px; left: calc(50% + 10px); right: calc(-50% + 10px);
@@ -202,8 +202,8 @@ body {
 .ops-phase-num { font-size: 10px; font-weight: 700; color: #fff; line-height: 1; }
 .ops-phase-info { text-align: center; margin-top: 0.5rem; }
 .ops-phase-name {
-  font-size: 11px; font-weight: 500; color: var(--text); white-space: nowrap;
-  overflow: hidden; text-overflow: ellipsis; max-width: 80px;
+  font-size: 11px; font-weight: 500; color: var(--text);
+  text-align: center; line-height: 1.3; word-wrap: break-word; max-width: 120px;
 }
 .ops-phase-item.blocked .ops-phase-name { color: var(--text-sec); }
 .ops-phase-ts { font-family: var(--mono); font-size: 10px; color: var(--text-dim); margin-top: 2px; }
@@ -215,7 +215,8 @@ body {
 .phase-status-badge.in_progress { background: rgba(59,130,246,0.15); color: var(--blue); }
 .phase-status-badge.blocked     { background: rgba(100,116,139,0.15); color: var(--gray); }
 .phase-agent-dots { display: flex; gap: 3px; justify-content: center; margin-top: 4px; }
-.phase-agent-dot { width: 6px; height: 6px; border-radius: 50%; background: var(--gray); }
+.phase-agent-dot { width: 6px; height: 6px; border-radius: 50%; background: var(--gray); cursor: pointer; transition: transform 0.15s; display: inline-block; text-decoration: none; }
+.phase-agent-dot:hover { transform: scale(1.8); }
 .phase-agent-dot.alive { background: var(--green); }
 .phase-agent-dot.defined { background: var(--amber); }
 .phase-agent-dot.designed { background: var(--gray); }
@@ -933,8 +934,25 @@ body.panel-open #app { margin-right: var(--panel-width); transition: margin-righ
     4: ["researcher", "critic", "taskmanager", "incidentcommander", "securityreviewer", "memorykeeper", "gapdetector"],
     5: ["integrator"],
     6: ["pm", "finance", "customersvc", "sre", "devops", "legal"],
-    7: ["philosopher", "rolearchitect", "harmony", "politician"]
+    7: ["philosopher", "rolearchitect", "harmony", "politician"],
+    8: []
   };
+  // Canonical agent definitions live in the upstream org (lovyou-ai), not the fork
+  var AGENT_MD_BASE = "https://github.com/lovyou-ai/hive/blob/main/agents/";
+  var AGENT_MD_NAME = {
+    guardian: "guardian", strategist: "strategist", planner: "planner", implementer: "implementer",
+    sysmon: "sysmon", allocator: "allocator", cto: "cto", reviewer: "reviewer", spawner: "spawner",
+    researcher: "research", critic: "critic", taskmanager: null, incidentcommander: "incident-commander",
+    securityreviewer: null, memorykeeper: null, gapdetector: "gap-detector",
+    integrator: null, pm: "pm", finance: "finance", customersvc: "customer-success",
+    sre: null, devops: null, legal: "legal",
+    philosopher: "philosopher", rolearchitect: "role-architect", harmony: "harmony", politician: null
+  };
+  function agentMdUrl(role) {
+    var key = role.toLowerCase();
+    if (!(key in AGENT_MD_NAME) || AGENT_MD_NAME[key] === null) return null;
+    return AGENT_MD_BASE + AGENT_MD_NAME[key] + ".md";
+  }
   var NOISE_TYPES = [
     "agent.state.changed", "agent.evaluated", "agent.model.bound",
     "agent.soul.imprinted", "agent.authority.granted"
@@ -1354,7 +1372,7 @@ body.panel-open #app { margin-right: var(--panel-width); transition: margin-righ
       if (ts) info.appendChild(el("div", { cls: "ops-phase-ts", text: ts }));
       info.appendChild(el("span", { cls: "phase-status-badge " + status, text: status.replace("_", " ") }));
       var phaseAgents = PHASE_AGENTS[p.phase];
-      if (phaseAgents && (status === "complete" || status === "in_progress")) {
+      if (phaseAgents && phaseAgents.length) {
         var dotsRow = el("div", { cls: "phase-agent-dots" });
         phaseAgents.forEach(function (role) {
           var dotStatus = "missing";
@@ -1363,7 +1381,21 @@ body.panel-open #app { margin-right: var(--panel-width); transition: margin-righ
             var rs = roleStatusMap[role];
             if (rs) dotStatus = rs === "running" ? "alive" : rs;
           }
-          dotsRow.appendChild(el("div", { cls: "phase-agent-dot " + dotStatus, title: role }));
+          // Known but not yet defined/built — show gray, not red
+          if (dotStatus === "missing" && (status === "blocked" || AGENT_MD_NAME[role] === null))
+            dotStatus = "designed";
+          var url = agentMdUrl(role);
+          var dotEl;
+          if (url) {
+            dotEl = document.createElement("a");
+            dotEl.href = url; dotEl.target = "_blank"; dotEl.rel = "noopener";
+            dotEl.className = "phase-agent-dot " + dotStatus;
+            dotEl.title = role + " — click to view definition";
+            dotEl.addEventListener("click", function (e) { e.stopPropagation(); });
+          } else {
+            dotEl = el("div", { cls: "phase-agent-dot " + dotStatus, title: role + " (no definition yet)" });
+          }
+          dotsRow.appendChild(dotEl);
         });
         info.appendChild(dotsRow);
       }
