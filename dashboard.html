@@ -1363,12 +1363,15 @@ body.panel-open #app { margin-right: var(--panel-width); transition: margin-righ
       if (phaseAgents && phaseAgents.length) {
         var dotsRow = el("div", { cls: "phase-agent-dots" });
         phaseAgents.forEach(function (role) {
-          var dotStatus = status === "blocked" ? "designed" : "missing";
+          var dotStatus = "missing";
           if (liveRoles[role]) { dotStatus = "alive"; }
           else {
             var rs = roleStatusMap[role];
             if (rs) dotStatus = rs === "running" ? "alive" : rs;
           }
+          // Known but not yet defined/built — show gray, not red
+          if (dotStatus === "missing" && (status === "blocked" || AGENT_MD_NAME[role] === null))
+            dotStatus = "designed";
           var url = agentMdUrl(role);
           var dotEl;
           if (url) {
