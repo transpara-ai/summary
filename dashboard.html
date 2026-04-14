@@ -1343,9 +1343,11 @@ body.panel-open #app { margin-right: var(--panel-width); transition: margin-righ
           var r = (a.role || "").toLowerCase(), s = (a.state || "").toLowerCase();
           if (r && s !== "retired") liveRoles[r] = true;
         });
+        var found = false;
         for (var i = 0; i < lastOpsPhases.length; i++) {
-          if (lastOpsPhases[i].phase === selectedOpsPhase) { showOpsPhasePanel(lastOpsPhases[i], liveRoles); break; }
+          if (lastOpsPhases[i].phase === selectedOpsPhase) { showOpsPhasePanel(lastOpsPhases[i], liveRoles, true); found = true; break; }
         }
+        if (!found) { selectedOpsPhase = null; closeDetailPanel(); }
       }
     })
     .catch(function (err) {
@@ -1630,6 +1632,7 @@ body.panel-open #app { margin-right: var(--panel-width); transition: margin-righ
   // ── OPS: Agent Detail Panel ─────────────────────────
   function showOpsAgentPanel(a, isRefresh) {
     selectedOpsAgent = a.role;
+    selectedOpsPhase = null;
     // Highlight selected card
     document.querySelectorAll(".agent-card").forEach(function (c) { c.classList.remove("selected"); });
     // Find the card for this agent by role name
@@ -1696,11 +1699,11 @@ body.panel-open #app { margin-right: var(--panel-width); transition: margin-righ
 
   // ── OPS: Phase Detail Panel ─────────────────────────
   var OPS_PHASE_TIER = { 0: "A", 1: "A", 2: "B", 3: "B", 4: "C", 5: "C", 6: "D", 7: "D", 8: "D" };
-  function showOpsPhasePanel(p, liveRoles) {
+  function showOpsPhasePanel(p, liveRoles, isRefresh) {
     var phaseNum = p.phase;
-    if (selectedOpsPhase === phaseNum) { selectedOpsPhase = null; closeDetailPanel(); return; }
+    if (!isRefresh && selectedOpsPhase === phaseNum) { selectedOpsPhase = null; closeDetailPanel(); return; }
     selectedOpsPhase = phaseNum;
-    selectedOpsAgent = null;
+    if (!isRefresh) selectedOpsAgent = null;
 
     var status = p.status || "blocked";
     var tier = OPS_PHASE_TIER[phaseNum] || "?";
@@ -1738,7 +1741,7 @@ body.panel-open #app { margin-right: var(--panel-width); transition: margin-righ
         var row = el("div", { cls: "p-row", style: { cursor: "default" } });
         var lbl = el("span", { cls: "p-label", style: { display: "flex", alignItems: "center", gap: "6px", minWidth: "auto" } });
         var dotEl = el("span", { style: { width: "6px", height: "6px", borderRadius: "50%", display: "inline-block", flexShrink: "0" } });
-        dotEl.style.background = dotStatus === "alive" ? "var(--green)" : dotStatus === "defined" ? "var(--amber)" : dotStatus === "missing" ? "var(--red)" : "var(--gray)";
+        dotEl.style.background = dotStatus === "alive" ? "var(--green)" : dotStatus === "designed" ? "var(--gray)" : dotStatus === "missing" ? "var(--red)" : "var(--gray)";
         lbl.appendChild(dotEl);
         lbl.appendChild(document.createTextNode(role));
         row.appendChild(lbl);
@@ -1769,7 +1772,14 @@ body.panel-open #app { margin-right: var(--panel-width); transition: margin-righ
     }
 
     var title = "Phase " + phaseNum + ": " + (p.label || "");
-    openArchPanel("ops-phase", phaseNum, title, frag);
+    if (isRefresh && document.body.classList.contains("panel-open")) {
+      document.getElementById("panel-title").textContent = title;
+      var body = document.getElementById("panel-body");
+      while (body.firstChild) body.removeChild(body.firstChild);
+      body.appendChild(frag);
+    } else {
+      openArchPanel("ops-phase", phaseNum, title, frag);
+    }
   }
 
   // ── OPS: Task Pane ─────────────────────────────────
