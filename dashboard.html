@@ -667,6 +667,50 @@ body.panel-open #app { margin-right: var(--panel-width); transition: margin-righ
 /* Panel dots (need explicit size outside .role-chip/.legend-item context) */
 .panel-body .dot { width: 7px; height: 7px; border-radius: 50%; flex-shrink: 0; display: inline-block; vertical-align: middle; }
 
+/* Agent definition (collapsible markdown sections) */
+.md-section { border-top: 1px solid var(--border); }
+.md-section:first-child { border-top: none; }
+.md-section-header {
+  display: flex; align-items: center; gap: 0.5rem; padding: 0.5rem 0;
+  cursor: pointer; user-select: none;
+}
+.md-section-header:hover { opacity: 0.8; }
+.md-chevron {
+  font-size: 10px; color: var(--text-dim); transition: transform 0.15s;
+  display: inline-block; width: 12px; text-align: center;
+}
+.md-section.open .md-chevron { transform: rotate(90deg); }
+.md-section-title {
+  font-size: 11px; font-weight: 700; text-transform: uppercase;
+  letter-spacing: 0.06em; color: var(--text-sec);
+}
+.md-section-body {
+  display: none; padding: 0 0 0.75rem 0;
+  font-size: 12px; line-height: 1.6; color: var(--text-sec);
+}
+.md-section.open .md-section-body { display: block; }
+.md-section-body p { margin: 0 0 0.5rem 0; }
+.md-section-body p:last-child { margin-bottom: 0; }
+.md-section-body ul { margin: 0 0 0.5rem 0; padding-left: 1.25rem; }
+.md-section-body li { margin-bottom: 0.25rem; }
+.md-section-body code {
+  font-family: var(--mono); font-size: 11px;
+  background: rgba(255,255,255,0.06); padding: 1px 4px; border-radius: 3px;
+}
+.md-section-body pre {
+  background: rgba(0,0,0,0.3); padding: 0.75rem; border-radius: var(--radius-sm);
+  overflow-x: auto; margin: 0.5rem 0;
+}
+.md-section-body pre code { background: none; padding: 0; }
+.md-section-body blockquote {
+  border-left: 3px solid var(--border-light); padding-left: 0.75rem;
+  color: var(--text-dim); font-style: italic; margin: 0.5rem 0;
+}
+.md-loading {
+  font-size: 11px; color: var(--text-dim); font-style: italic;
+  padding: 0.75rem 0;
+}
+
 /* Panel legend (reusable inside detail panels) */
 .panel-legend {
   display: flex; gap: 0.75rem; flex-wrap: wrap; margin-bottom: 0.75rem;
