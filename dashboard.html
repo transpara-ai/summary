@@ -1055,6 +1055,16 @@ body.panel-open #app { margin-right: var(--panel-width); transition: margin-righ
     });
   }
 
+  function renderInline(text) {
+    var frag = document.createDocumentFragment();
+    var parts = text.split(/`([^`]+)`/);
+    for (var i = 0; i < parts.length; i++) {
+      if (i % 2 === 0) { if (parts[i]) frag.appendChild(document.createTextNode(parts[i])); }
+      else { frag.appendChild(el("code", { text: parts[i] })); }
+    }
+    return frag;
+  }
+
   function renderMdBody(body) {
     var frag = document.createDocumentFragment();
     // Extract fenced code blocks before splitting
@@ -1096,7 +1106,7 @@ body.panel-open #app { margin-right: var(--panel-width); transition: margin-righ
           var ul = document.createElement("ul");
           lines.forEach(function (ln) {
             var txt = ln.replace(/^[-*]\s+/, "");
-            if (txt) ul.appendChild(el("li", { text: txt }));
+            if (txt) { var li = document.createElement("li"); li.appendChild(renderInline(txt)); ul.appendChild(li); }
           });
           frag.appendChild(ul);
           continue;
@@ -1107,7 +1117,7 @@ body.panel-open #app { margin-right: var(--panel-width); transition: margin-righ
           var ol = document.createElement("ol");
           lines.forEach(function (ln) {
             var txt = ln.replace(/^\d+\.\s+/, "");
-            if (txt) ol.appendChild(el("li", { text: txt }));
+            if (txt) { var li = document.createElement("li"); li.appendChild(renderInline(txt)); ol.appendChild(li); }
           });
           frag.appendChild(ol);
           continue;
@@ -1115,7 +1125,7 @@ body.panel-open #app { margin-right: var(--panel-width); transition: margin-righ
 
         // Paragraph
         var p = document.createElement("p");
-        p.textContent = block.replace(/\n/g, " ");
+        p.appendChild(renderInline(block.replace(/\n/g, " ")));
         frag.appendChild(p);
       }
     });
@@ -1969,34 +1979,36 @@ body.panel-open #app { margin-right: var(--panel-width); transition: margin-righ
       frag.appendChild(makeSection("Last Message", el("pre", { cls: "last-message", text: a.last_message })));
     }
 
-    // Agent Definition section
-    var mdWrap = el("div", { cls: "p-section" });
-    mdWrap.appendChild(el("div", { cls: "p-section-title", text: "Agent Definition" }));
-    var mdContent = el("div");
+    // Agent Definition section — only if a .md file exists or is cached
     var mdRole = (a.role || "").toLowerCase();
-    if (agentMdCache[mdRole]) {
-      renderAgentMd(agentMdCache[mdRole], mdContent);
-    } else if (agentMdRawUrl(mdRole)) {
-      mdContent.appendChild(el("div", { cls: "md-loading", text: "Loading definition\u2026" }));
-      fetchAgentMd(mdRole, function (sections) {
-        if (selectedOpsAgent !== a.role) return;
-        mdContent.textContent = "";
-        if (sections && sections.length) {
-          renderAgentMd(sections, mdContent);
-        } else {
-          var fallback = el("div", { cls: "md-loading" });
-          fallback.appendChild(document.createTextNode("Definition not available \u2014 "));
-          var ghLink = document.createElement("a");
-          ghLink.href = agentMdUrl(mdRole) || "#"; ghLink.target = "_blank"; ghLink.rel = "noopener";
-          ghLink.textContent = "View on GitHub";
-          ghLink.style.cssText = "color:var(--blue);text-decoration:none;font-size:11px";
-          fallback.appendChild(ghLink);
-          mdContent.appendChild(fallback);
-        }
-      });
+    if (agentMdCache[mdRole] || agentMdRawUrl(mdRole)) {
+      var mdWrap = el("div", { cls: "p-section" });
+      mdWrap.appendChild(el("div", { cls: "p-section-title", text: "Agent Definition" }));
+      var mdContent = el("div");
+      if (agentMdCache[mdRole]) {
+        renderAgentMd(agentMdCache[mdRole], mdContent);
+      } else {
+        mdContent.appendChild(el("div", { cls: "md-loading", text: "Loading definition\u2026" }));
+        fetchAgentMd(mdRole, function (sections) {
+          if (selectedOpsAgent !== a.role) return;
+          mdContent.textContent = "";
+          if (sections && sections.length) {
+            renderAgentMd(sections, mdContent);
+          } else {
+            var fallback = el("div", { cls: "md-loading" });
+            fallback.appendChild(document.createTextNode("Definition not available \u2014 "));
+            var ghLink = document.createElement("a");
+            ghLink.href = agentMdUrl(mdRole) || "#"; ghLink.target = "_blank"; ghLink.rel = "noopener";
+            ghLink.textContent = "View on GitHub";
+            ghLink.style.cssText = "color:var(--blue);text-decoration:none;font-size:11px";
+            fallback.appendChild(ghLink);
+            mdContent.appendChild(fallback);
+          }
+        });
+      }
+      mdWrap.appendChild(mdContent);
+      frag.appendChild(mdWrap);
     }
-    mdWrap.appendChild(mdContent);
-    frag.appendChild(mdWrap);
 
     // Open or update panel
     if (isRefresh && document.body.classList.contains("panel-open")) {
@@ -2171,33 +2183,35 @@ body.panel-open #app { margin-right: var(--panel-width); transition: margin-righ
       frag.appendChild(makeSection("Watch Patterns", ul));
     }
 
-    // Agent Definition section — loading placeholder
-    var mdWrap = el("div", { cls: "p-section" });
-    mdWrap.appendChild(el("div", { cls: "p-section-title", text: "Agent Definition" }));
-    var mdContent = el("div");
-    if (agentMdCache[role]) {
-      renderAgentMd(agentMdCache[role], mdContent);
-    } else if (agentMdRawUrl(role)) {
-      mdContent.appendChild(el("div", { cls: "md-loading", text: "Loading definition\u2026" }));
-      fetchAgentMd(role, function (sections) {
-        if (!selectedOpsDot || selectedOpsDot.role !== role) return;
-        mdContent.textContent = "";
-        if (sections && sections.length) {
-          renderAgentMd(sections, mdContent);
-        } else {
-          var fallback = el("div", { cls: "md-loading" });
-          fallback.appendChild(document.createTextNode("Definition not available \u2014 "));
-          var ghLink = document.createElement("a");
-          ghLink.href = agentMdUrl(role) || "#"; ghLink.target = "_blank"; ghLink.rel = "noopener";
-          ghLink.textContent = "View on GitHub";
-          ghLink.style.cssText = "color:var(--blue);text-decoration:none;font-size:11px";
-          fallback.appendChild(ghLink);
-          mdContent.appendChild(fallback);
-        }
-      });
+    // Agent Definition section — only if a .md file exists or is cached
+    if (agentMdCache[role] || agentMdRawUrl(role)) {
+      var mdWrap = el("div", { cls: "p-section" });
+      mdWrap.appendChild(el("div", { cls: "p-section-title", text: "Agent Definition" }));
+      var mdContent = el("div");
+      if (agentMdCache[role]) {
+        renderAgentMd(agentMdCache[role], mdContent);
+      } else {
+        mdContent.appendChild(el("div", { cls: "md-loading", text: "Loading definition\u2026" }));
+        fetchAgentMd(role, function (sections) {
+          if (!selectedOpsDot || selectedOpsDot.role !== role) return;
+          mdContent.textContent = "";
+          if (sections && sections.length) {
+            renderAgentMd(sections, mdContent);
+          } else {
+            var fallback = el("div", { cls: "md-loading" });
+            fallback.appendChild(document.createTextNode("Definition not available \u2014 "));
+            var ghLink = document.createElement("a");
+            ghLink.href = agentMdUrl(role) || "#"; ghLink.target = "_blank"; ghLink.rel = "noopener";
+            ghLink.textContent = "View on GitHub";
+            ghLink.style.cssText = "color:var(--blue);text-decoration:none;font-size:11px";
+            fallback.appendChild(ghLink);
+            mdContent.appendChild(fallback);
+          }
+        });
+      }
+      mdWrap.appendChild(mdContent);
+      frag.appendChild(mdWrap);
     }
-    mdWrap.appendChild(mdContent);
-    frag.appendChild(mdWrap);
 
     if (isRefresh && document.body.classList.contains("panel-open")) {
       document.getElementById("panel-title").textContent = role;
