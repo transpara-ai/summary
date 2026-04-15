@@ -1412,6 +1412,12 @@ body.panel-open #app { margin-right: var(--panel-width); transition: margin-righ
       if ((sorted[i].status || "").toLowerCase() !== "complete") { frontier = sorted[i]; break; }
     }
 
+    if (!sorted.length) {
+      badge.classList.add("idle");
+      badge.textContent = "Awaiting phase data\u2026";
+      return;
+    }
+
     if (!frontier) {
       // All phases complete
       badge.textContent = "All phases complete";
@@ -1689,14 +1695,15 @@ body.panel-open #app { margin-right: var(--panel-width); transition: margin-righ
       var sev = (hive.severity || "ok").toLowerCase();
       c.appendChild(el("span", { cls: "severity-badge severity-" + (sev === "ok" ? "ok" : sev === "warning" ? "warning" : "critical"), text: sev }));
     }));
-    // Infer hive mode from agent composition
+    // Infer hive mode from agent composition (exclude retired)
     var mode = hive.mode; // use API field if present
     if (!mode && agents.length) {
+      var active = agents.filter(function (a) { return (a.state || "").toLowerCase() !== "retired"; });
       var roles = {};
-      agents.forEach(function (a) { roles[(a.role || "").toLowerCase()] = true; });
-      if (agents.length === 1) mode = "one-shot";
-      else if (roles.scout || (roles.builder && roles.critic)) mode = "pipeline";
-      else mode = "multi-agent";
+      active.forEach(function (a) { roles[(a.role || "").toLowerCase()] = true; });
+      if (active.length === 1) mode = "one-shot";
+      else if (active.length > 1 && (roles.scout || (roles.builder && roles.critic))) mode = "pipeline";
+      else if (active.length > 1) mode = "multi-agent";
     }
     if (mode) {
       grid.appendChild(hiveCard("Mode", function (c) {
@@ -1908,7 +1915,7 @@ body.panel-open #app { margin-right: var(--panel-width); transition: margin-righ
 
     // Overview section — enrich from archData when available
     var ov = [
-      makeRow("Status", statusBadgeEl(archRole ? archRole.status : dotStatus)),
+      makeRow("Status", statusBadgeEl(dotStatus)),
       makeRow("Phase", "Phase " + phase.phase + " \u2014 " + phaseLabel),
       makeRow("Tier", tierBadgeEl(archRole ? archRole.tier || tier : tier))
     ];
