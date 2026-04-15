@@ -953,8 +953,8 @@ body.panel-open #app { margin-right: var(--panel-width); transition: margin-righ
     8: []
   };
   var PHASE_TIER = { 0: "A", 1: "A", 2: "B", 3: "B", 4: "C", 5: "C", 6: "D", 7: "D", 8: "D" };
-  // Agent definitions live in the lovyou-ai org on GitHub
-  var AGENT_MD_BASE = "https://github.com/lovyou-ai/hive/blob/main/agents/";
+  // Agent definitions live in the transpara-ai fork on GitHub
+  var AGENT_MD_BASE = "https://github.com/transpara-ai/hive/blob/main/agents/";
   var AGENT_MD_NAME = {
     guardian: "guardian", strategist: "strategist", planner: "planner", implementer: "implementer",
     sysmon: "sysmon", allocator: "allocator", cto: "cto", reviewer: "reviewer", spawner: "spawner",
@@ -1363,7 +1363,7 @@ body.panel-open #app { margin-right: var(--panel-width); transition: margin-righ
           for (var i = 0; i < lastOpsPhases.length; i++) {
             if (lastOpsPhases[i].phase === selectedOpsDot.phase) { ph = lastOpsPhases[i]; break; }
           }
-          if (ph) showOpsDotPanel(selectedOpsDot.role, computeDotStatus(selectedOpsDot.role, ph.status || ""), ph);
+          if (ph) showOpsDotPanel(selectedOpsDot.role, computeDotStatus(selectedOpsDot.role, ph.status || ""), ph, true);
           else { selectedOpsDot = null; closeDetailPanel(); }
         }
       }
@@ -1818,28 +1818,38 @@ body.panel-open #app { margin-right: var(--panel-width); transition: margin-righ
   }
 
   // ── OPS: Agent Dot Detail Panel ─────────────────────
-  function showOpsDotPanel(role, dotStatus, phase) {
+  function showOpsDotPanel(role, dotStatus, phase, isRefresh) {
     // If agent is running, delegate to the full agent panel
     for (var i = 0; i < lastAgents.length; i++) {
       if ((lastAgents[i].role || "").toLowerCase() === role) {
-        showOpsAgentPanel(lastAgents[i], false);
+        showOpsAgentPanel(lastAgents[i], isRefresh || false);
         return;
       }
     }
-    // Agent not running — build a minimal panel from what we know
+    // Agent not running — build a panel from what we know
     selectedOpsPhase = null;
     selectedOpsAgent = null;
     selectedOpsDot = { role: role, phase: phase.phase };
     var frag = document.createDocumentFragment();
     var tier = PHASE_TIER[phase.phase] || "?";
     var phaseLabel = (phase.label || "").replace(/\s*\(Tier\s+[A-Z]\)$/i, "");
+    var archRole = findRole(role);
+
+    // Overview section — enrich from archData when available
     var ov = [
-      makeRow("Status", statusBadgeEl(dotStatus)),
+      makeRow("Status", statusBadgeEl(archRole ? archRole.status : dotStatus)),
       makeRow("Phase", "Phase " + phase.phase + " \u2014 " + phaseLabel),
-      makeRow("Tier", tierBadgeEl(tier))
+      makeRow("Tier", tierBadgeEl(archRole ? archRole.tier || tier : tier))
     ];
-    var purpose = rolePurposeMap[role];
+    var purpose = (archRole && archRole.purpose) || rolePurposeMap[role];
     if (purpose) ov.push(makeRow("Purpose", purpose));
+    if (archRole) {
+      if (archRole.category) ov.push(makeRow("Category", archRole.category));
+      if (archRole.origin) ov.push(makeRow("Origin", originBadgeEl(archRole.origin)));
+      ov.push(makeRow("Has prompt", archRole.has_prompt ? "Yes" : "No"));
+      ov.push(makeRow("Has persona", archRole.has_persona ? "Yes" : "No"));
+      if (archRole.graduated) ov.push(makeRow("Graduated", archRole.graduated));
+    }
     var url = agentMdUrl(role);
     if (url) {
       var link = document.createElement("a");
@@ -1851,7 +1861,43 @@ body.panel-open #app { margin-right: var(--panel-width); transition: margin-righ
       ov.push(makeRow("Definition", "Not yet created"));
     }
     frag.appendChild(makeSection("Role Overview", ov));
-    openArchPanel("ops-dot", role, role, frag);
+
+    // Configuration section from archData
+    if (archRole && (archRole.model || archRole.can_operate != null || archRole.max_iterations)) {
+      var cfgRows = [];
+      if (archRole.model) {
+        var mw = document.createDocumentFragment();
+        mw.appendChild(el("span", { cls: "status-badge", text: shortModel(archRole.model), style: { background: "rgba(168,85,247,0.12)", color: "var(--purple)", fontFamily: "var(--mono)", fontSize: "10px" } }));
+        mw.appendChild(document.createTextNode(" ")); mw.appendChild(el("span", { text: archRole.model, style: { color: "var(--text-dim)", fontSize: "11px" } }));
+        cfgRows.push(makeRow("Model", mw));
+      }
+      if (archRole.can_operate != null) cfgRows.push(makeRow("CanOperate", archRole.can_operate ? "Yes" : "No"));
+      if (archRole.max_iterations) cfgRows.push(makeRow("MaxIterations", String(archRole.max_iterations)));
+      frag.appendChild(makeSection("Configuration", cfgRows));
+    }
+
+    // Dependencies section from archData
+    if (archRole && archRole.dependencies && archRole.dependencies.length) {
+      var depRows = archRole.dependencies.map(function (dep) {
+        var dr = findRole(dep), row = el("div", { cls: "p-row" }), val = el("span", { cls: "p-val" });
+        append(val, statusDotEl(dr ? dr.status : "missing"), document.createTextNode(" " + dep));
+        row.appendChild(val); return row;
+      });
+      frag.appendChild(makeSection("Dependencies", depRows));
+    }
+
+    // Watch patterns from archData
+    if (archRole && archRole.watch_patterns && archRole.watch_patterns.length) {
+      var ul = el("ul", { cls: "watch-list" }); archRole.watch_patterns.forEach(function (w) { ul.appendChild(el("li", { text: w })); });
+      frag.appendChild(makeSection("Watch Patterns", ul));
+    }
+
+    if (isRefresh && document.body.classList.contains("panel-open")) {
+      document.getElementById("panel-title").textContent = role;
+      clearEl("panel-body").appendChild(frag);
+    } else {
+      openArchPanel("ops-dot", role, role, frag);
+    }
   }
 
   // ── OPS: Task Pane ─────────────────────────────────
