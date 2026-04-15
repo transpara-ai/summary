@@ -1006,11 +1006,11 @@ body.panel-open #app { margin-right: var(--panel-width); transition: margin-righ
   var AGENT_MD_NAME = {
     guardian: "guardian", strategist: "strategist", planner: "planner", implementer: "implementer",
     sysmon: "sysmon", allocator: "allocator", cto: "cto", reviewer: "reviewer", spawner: "spawner",
-    researcher: "research", critic: "critic", taskmanager: null, incidentcommander: "incident-commander",
-    securityreviewer: null, memorykeeper: null, gapdetector: "gap-detector",
-    integrator: null, pm: "pm", finance: "finance", customersvc: "customer-success",
-    sre: null, devops: null, legal: "legal",
-    philosopher: "philosopher", rolearchitect: "role-architect", harmony: "harmony", politician: null
+    researcher: "research", critic: "critic", taskmanager: "task-manager", incidentcommander: "incident-commander",
+    securityreviewer: "security-reviewer", memorykeeper: "memory-keeper", gapdetector: "gap-detector",
+    integrator: "integrator", pm: "pm", finance: "finance", customersvc: "customer-success",
+    sre: "sre", devops: "devops", legal: "legal",
+    philosopher: "philosopher", rolearchitect: "role-architect", harmony: "harmony", politician: "politician"
   };
   function agentMdUrl(role) {
     var key = role.toLowerCase();
