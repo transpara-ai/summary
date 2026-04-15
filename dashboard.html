@@ -2129,7 +2129,7 @@ body.panel-open #app { margin-right: var(--panel-width); transition: margin-righ
 
     // Overview section — enrich from archData when available
     var ov = [
-      makeRow("Status", statusBadgeEl(dotStatus)),
+      makeRow("Status", statusBadgeEl(archRole ? archRole.status : dotStatus)),
       makeRow("Phase", "Phase " + phase.phase + " \u2014 " + phaseLabel),
       makeRow("Tier", tierBadgeEl(archRole ? archRole.tier || tier : tier))
     ];
