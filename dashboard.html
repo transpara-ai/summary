@@ -1404,7 +1404,8 @@ body.panel-open #app { margin-right: var(--panel-width); transition: margin-righ
 
       // Row 1: Name (fixed 30px, up to 2 lines)
       var nameRow = el("div", { cls: "ops-phase-row ops-phase-row-name" });
-      nameRow.appendChild(el("div", { cls: "ops-phase-name", text: p.label || "Phase " + p.phase, title: p.label || "" }));
+      var cleanLabel = (p.label || "Phase " + p.phase).replace(/\s*\(Tier\s+[A-Z]\)$/i, "");
+      nameRow.appendChild(el("div", { cls: "ops-phase-name", text: cleanLabel, title: cleanLabel }));
       info.appendChild(nameRow);
 
       // Row 2: Tier label
