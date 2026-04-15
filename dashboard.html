@@ -105,6 +105,9 @@ body {
   background: rgba(34,197,94,0.12); color: var(--green);
   white-space: nowrap;
 }
+.topbar-milestone.idle { background: rgba(245,158,11,0.12); color: var(--amber); }
+.topbar-milestone.blocked { background: rgba(239,68,68,0.12); color: var(--red); }
+.topbar-milestone.in-progress { background: rgba(59,130,246,0.12); color: var(--blue); }
 
 /* ── VIEW SWITCHER ──────────────────────────────── */
 .view-switcher {
@@ -753,7 +756,7 @@ body.panel-open #app { margin-right: var(--panel-width); transition: margin-righ
   <!-- TOPBAR -->
   <div id="topbar">
     <span class="topbar-brand">Transpara-AI</span>
-    <span class="topbar-milestone" id="topbar-milestone">Phase 4 complete &mdash; Tier B emergence &mdash; 2026-04-09</span>
+    <span class="topbar-milestone idle" id="topbar-milestone">Awaiting data&hellip;</span>
     <span class="topbar-sep">&middot;</span>
     <div class="view-switcher">
       <button class="view-btn active" data-view="ops">Mission Control</button>
@@ -1331,6 +1334,7 @@ body.panel-open #app { margin-right: var(--panel-width); transition: margin-righ
       renderAgents(lastAgents);
       renderHive(data.hive || null, lastAgents);
       renderChainAlert(data.hive || null);
+      updateMilestone(data.phases || [], lastAgents, data.hive || null);
       renderEvents(lastEvents);
       // Restore detail panel if one was open
       if (selectedOpsAgent) {
@@ -1387,6 +1391,65 @@ body.panel-open #app { margin-right: var(--panel-width); transition: margin-righ
       alertEl.style.display = "block"; alertEl.className = "chain-alert chain-alert-unknown";
       alertEl.textContent = "Chain integrity unknown \u2014 not yet verified";
     } else { alertEl.style.display = "none"; }
+  }
+
+  // ── TOPBAR: Dynamic milestone banner ────────────────
+  function updateMilestone(phases, agents, hive) {
+    var badge = document.getElementById("topbar-milestone");
+    badge.className = "topbar-milestone";
+
+    // No agents running — hive is idle
+    if (!agents || !agents.length) {
+      badge.classList.add("idle");
+      badge.textContent = "Hive idle \u2014 start with --pipeline, --one-shot, or --idea";
+      return;
+    }
+
+    // Find the frontier: first non-complete phase
+    var sorted = (phases || []).slice().sort(function (a, b) { return (a.phase || 0) - (b.phase || 0); });
+    var frontier = null;
+    for (var i = 0; i < sorted.length; i++) {
+      if ((sorted[i].status || "").toLowerCase() !== "complete") { frontier = sorted[i]; break; }
+    }
+
+    if (!sorted.length) {
+      badge.classList.add("idle");
+      badge.textContent = "Awaiting phase data\u2026";
+      return;
+    }
+
+    if (!frontier) {
+      // All phases complete
+      badge.textContent = "All phases complete";
+      return;
+    }
+
+    var phaseAgents = PHASE_AGENTS[frontier.phase] || [];
+    var liveRoles = {};
+    agents.forEach(function (a) {
+      var r = (a.role || "").toLowerCase(), s = (a.state || "").toLowerCase();
+      if (r && s !== "retired") liveRoles[r] = true;
+    });
+    var missing = phaseAgents.filter(function (r) { return !liveRoles[r]; });
+    var label = (frontier.label || "Phase " + frontier.phase).replace(/\s*\(Tier\s+[A-Z]\)$/i, "");
+    var status = (frontier.status || "blocked").toLowerCase();
+
+    if (status === "in_progress") {
+      badge.classList.add("in-progress");
+      if (missing.length) {
+        badge.textContent = "Phase " + frontier.phase + " in progress \u2014 " + missing.length + " agent" + (missing.length > 1 ? "s" : "") + " not running: " + missing.join(", ");
+      } else {
+        badge.textContent = "Phase " + frontier.phase + " in progress \u2014 " + label;
+      }
+    } else {
+      // blocked
+      badge.classList.add("blocked");
+      if (missing.length) {
+        badge.textContent = "Phase " + frontier.phase + " blocked \u2014 needs: " + missing.join(", ");
+      } else {
+        badge.textContent = "Phase " + frontier.phase + " blocked \u2014 " + label;
+      }
+    }
   }
 
   // Compute current dot status for a role from module-scoped state
@@ -1632,6 +1695,21 @@ body.panel-open #app { margin-right: var(--panel-width); transition: margin-righ
       var sev = (hive.severity || "ok").toLowerCase();
       c.appendChild(el("span", { cls: "severity-badge severity-" + (sev === "ok" ? "ok" : sev === "warning" ? "warning" : "critical"), text: sev }));
     }));
+    // Infer hive mode from agent composition (exclude retired)
+    var mode = hive.mode; // use API field if present
+    if (!mode && agents.length) {
+      var active = agents.filter(function (a) { return (a.state || "").toLowerCase() !== "retired"; });
+      var roles = {};
+      active.forEach(function (a) { roles[(a.role || "").toLowerCase()] = true; });
+      if (active.length === 1) mode = "one-shot";
+      else if (active.length > 1 && (roles.scout || (roles.builder && roles.critic))) mode = "pipeline";
+      else if (active.length > 1) mode = "multi-agent";
+    }
+    if (mode) {
+      grid.appendChild(hiveCard("Mode", function (c) {
+        c.appendChild(el("div", { cls: "hive-card-val", text: mode }));
+      }));
+    }
   }
 
   // ── OPS: Events ────────────────────────────────────
