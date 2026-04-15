@@ -1969,6 +1969,35 @@ body.panel-open #app { margin-right: var(--panel-width); transition: margin-righ
       frag.appendChild(makeSection("Last Message", el("pre", { cls: "last-message", text: a.last_message })));
     }
 
+    // Agent Definition section
+    var mdWrap = el("div", { cls: "p-section" });
+    mdWrap.appendChild(el("div", { cls: "p-section-title", text: "Agent Definition" }));
+    var mdContent = el("div");
+    var mdRole = (a.role || "").toLowerCase();
+    if (agentMdCache[mdRole]) {
+      renderAgentMd(agentMdCache[mdRole], mdContent);
+    } else if (agentMdRawUrl(mdRole)) {
+      mdContent.appendChild(el("div", { cls: "md-loading", text: "Loading definition\u2026" }));
+      fetchAgentMd(mdRole, function (sections) {
+        if (selectedOpsAgent !== a.role) return;
+        mdContent.textContent = "";
+        if (sections && sections.length) {
+          renderAgentMd(sections, mdContent);
+        } else {
+          var fallback = el("div", { cls: "md-loading" });
+          fallback.appendChild(document.createTextNode("Definition not available \u2014 "));
+          var ghLink = document.createElement("a");
+          ghLink.href = agentMdUrl(mdRole) || "#"; ghLink.target = "_blank"; ghLink.rel = "noopener";
+          ghLink.textContent = "View on GitHub";
+          ghLink.style.cssText = "color:var(--blue);text-decoration:none;font-size:11px";
+          fallback.appendChild(ghLink);
+          mdContent.appendChild(fallback);
+        }
+      });
+    }
+    mdWrap.appendChild(mdContent);
+    frag.appendChild(mdWrap);
+
     // Open or update panel
     if (isRefresh && document.body.classList.contains("panel-open")) {
       // Just update content without re-animating
