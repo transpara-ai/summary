@@ -1656,7 +1656,12 @@ body.panel-open #app { margin-right: var(--panel-width); transition: margin-righ
     var ds = "missing";
     if (live) { ds = "alive"; }
     else { var rs = roleStatusMap[role]; if (rs) ds = rs === "running" ? "alive" : rs; }
-    if (ds === "missing" && (phaseStatus === "blocked" || AGENT_MD_NAME[role] === null)) ds = "designed";
+    // "defined" (gray) = registered in phase system, no GitHub doc
+    // "designed" (amber) = exists in spec/roadmap, not yet registered
+    if (ds === "missing") {
+      if (AGENT_MD_NAME[role] === null) ds = "defined";
+      else if (phaseStatus === "blocked") ds = "designed";
+    }
     return ds;
   }
 
@@ -1725,9 +1730,11 @@ body.panel-open #app { margin-right: var(--panel-width); transition: margin-righ
             var rs = roleStatusMap[role];
             if (rs) dotStatus = rs === "running" ? "alive" : rs;
           }
-          // Known but not yet defined/built — show gray, not red
-          if (dotStatus === "missing" && (status === "blocked" || AGENT_MD_NAME[role] === null))
-            dotStatus = "designed";
+          // "defined" (gray) = in phase system, no GitHub doc; "designed" (amber) = spec only
+          if (dotStatus === "missing") {
+            if (AGENT_MD_NAME[role] === null) dotStatus = "defined";
+            else if (status === "blocked") dotStatus = "designed";
+          }
           var dotEl = el("div", { cls: "phase-agent-dot " + dotStatus, title: role });
           dotEl.addEventListener("click", (function (r, st) {
             return function (e) {
@@ -2065,8 +2072,11 @@ body.panel-open #app { margin-right: var(--panel-width); transition: margin-righ
           var rs = roleStatusMap[role];
           if (rs) dotStatus = rs === "running" ? "alive" : rs;
         }
-        if (dotStatus === "missing" && (status === "blocked" || AGENT_MD_NAME[role] === null))
-          dotStatus = "designed";
+        // "defined" (gray) = in phase system, no GitHub doc; "designed" (amber) = spec only
+        if (dotStatus === "missing") {
+          if (AGENT_MD_NAME[role] === null) dotStatus = "defined";
+          else if (status === "blocked") dotStatus = "designed";
+        }
         var row = el("div", { cls: "p-row", style: { cursor: "default" } });
         var lbl = el("span", { cls: "p-label", style: { display: "flex", alignItems: "center", gap: "6px", minWidth: "auto" } });
         var dotEl = el("span", { style: { width: "6px", height: "6px", borderRadius: "50%", display: "inline-block", flexShrink: "0" } });
@@ -2943,10 +2953,17 @@ body.panel-open #app { margin-right: var(--panel-width); transition: margin-righ
         });
         card.appendChild(aw);
       }
-      var gaps = agents.filter(function (a) { var s = effectiveStatus(a.name || a.role || "", a.status).toLowerCase(); return s === "missing" || s === "designed"; });
+      var gaps = agents.filter(function (a) { var s = effectiveStatus(a.name || a.role || "", a.status).toLowerCase(); return s === "missing" || s === "designed" || s === "defined"; });
       if (gaps.length && (status === "blocked" || status === "in_progress")) {
         var gd = el("div", { cls: "phase-gaps" }); gd.appendChild(el("div", { cls: "phase-gaps-title", text: "Gaps (" + gaps.length + ")" }));
-        gd.appendChild(document.createTextNode(gaps.map(function (g) { return (g.name || g.role || "") + " (" + (g.status || "") + ")"; }).join(", ")));
+        gaps.forEach(function (g, idx) {
+          if (idx > 0) gd.appendChild(document.createTextNode(", "));
+          var gs3 = effectiveStatus(g.name || g.role || "", g.status).toLowerCase();
+          var gSpan = el("span", { text: (g.name || g.role || "") + " (" + (g.status || "") + ")" });
+          if (gs3 === "designed") gSpan.style.color = "var(--amber)";
+          else if (gs3 === "defined") gSpan.style.color = "var(--gray)";
+          gd.appendChild(gSpan);
+        });
         card.appendChild(gd);
       }
       if (p.dependencies && p.dependencies.length) {
