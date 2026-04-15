@@ -1016,6 +1016,45 @@ body.panel-open #app { margin-right: var(--panel-width); transition: margin-righ
     if (!(key in AGENT_MD_NAME) || AGENT_MD_NAME[key] === null) return null;
     return AGENT_MD_BASE + AGENT_MD_NAME[key] + ".md";
   }
+  var AGENT_MD_RAW_BASE = "https://raw.githubusercontent.com/transpara-ai/hive/main/agents/";
+  var agentMdCache = {};
+
+  function agentMdRawUrl(role) {
+    var key = role.toLowerCase();
+    if (!(key in AGENT_MD_NAME) || AGENT_MD_NAME[key] === null) return null;
+    return AGENT_MD_RAW_BASE + AGENT_MD_NAME[key] + ".md";
+  }
+
+  function parseAgentMd(raw) {
+    var sections = [];
+    var parts = raw.split(/^## /m);
+    for (var i = 1; i < parts.length; i++) {
+      var nlIdx = parts[i].indexOf("\n");
+      if (nlIdx === -1) continue;
+      var heading = parts[i].substring(0, nlIdx).trim();
+      var body = parts[i].substring(nlIdx + 1).trim();
+      if (heading && body) sections.push({ heading: heading, body: body });
+    }
+    return sections;
+  }
+
+  function fetchAgentMd(role, callback) {
+    var key = role.toLowerCase();
+    if (agentMdCache[key]) { callback(agentMdCache[key]); return; }
+    var url = agentMdRawUrl(key);
+    if (!url) { callback(null); return; }
+    fetch(url).then(function (res) {
+      if (!res.ok) throw new Error("HTTP " + res.status);
+      return res.text();
+    }).then(function (text) {
+      var sections = parseAgentMd(text);
+      agentMdCache[key] = sections;
+      callback(sections);
+    }).catch(function () {
+      callback(null);
+    });
+  }
+
   var NOISE_TYPES = [
     "agent.state.changed", "agent.evaluated", "agent.model.bound",
     "agent.soul.imprinted", "agent.authority.granted"
