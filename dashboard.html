@@ -938,7 +938,7 @@ body.panel-open #app { margin-right: var(--panel-width); transition: margin-righ
   // Ops-specific state
   var selectedOpsAgent = null; // role name of agent shown in detail panel
   var selectedOpsPhase = null; // phase number shown in detail panel
-  var selectedOpsDot = null;   // {role, phase} of non-running dot panel
+  var selectedOpsDot = null;   // {role, phase} for non-running dot panel restore
   var lastOpsPhases = [];      // cached for panel refresh
 
   var PHASE_AGENTS = {
@@ -1363,7 +1363,7 @@ body.panel-open #app { margin-right: var(--panel-width); transition: margin-righ
           for (var i = 0; i < lastOpsPhases.length; i++) {
             if (lastOpsPhases[i].phase === selectedOpsDot.phase) { ph = lastOpsPhases[i]; break; }
           }
-          if (ph) showOpsDotPanel(selectedOpsDot.role, selectedOpsDot.dotStatus, ph);
+          if (ph) showOpsDotPanel(selectedOpsDot.role, computeDotStatus(selectedOpsDot.role, ph.status || ""), ph);
           else { selectedOpsDot = null; closeDetailPanel(); }
         }
       }
@@ -1387,6 +1387,20 @@ body.panel-open #app { margin-right: var(--panel-width); transition: margin-righ
       alertEl.style.display = "block"; alertEl.className = "chain-alert chain-alert-unknown";
       alertEl.textContent = "Chain integrity unknown \u2014 not yet verified";
     } else { alertEl.style.display = "none"; }
+  }
+
+  // Compute current dot status for a role from module-scoped state
+  function computeDotStatus(role, phaseStatus) {
+    var live = false;
+    for (var i = 0; i < lastAgents.length; i++) {
+      var r = (lastAgents[i].role || "").toLowerCase(), s = (lastAgents[i].state || "").toLowerCase();
+      if (r === role && s !== "retired") { live = true; break; }
+    }
+    var ds = "missing";
+    if (live) { ds = "alive"; }
+    else { var rs = roleStatusMap[role]; if (rs) ds = rs === "running" ? "alive" : rs; }
+    if (ds === "missing" && (phaseStatus === "blocked" || AGENT_MD_NAME[role] === null)) ds = "designed";
+    return ds;
   }
 
   // ── OPS: Phases ────────────────────────────────────
@@ -1458,12 +1472,12 @@ body.panel-open #app { margin-right: var(--panel-width); transition: margin-righ
           if (dotStatus === "missing" && (status === "blocked" || AGENT_MD_NAME[role] === null))
             dotStatus = "designed";
           var dotEl = el("div", { cls: "phase-agent-dot " + dotStatus, title: role });
-          dotEl.addEventListener("click", (function (r, ds) {
+          dotEl.addEventListener("click", (function (r, st) {
             return function (e) {
               e.stopPropagation();
-              showOpsDotPanel(r, ds, p);
+              showOpsDotPanel(r, computeDotStatus(r, st), p);
             };
-          })(role, dotStatus));
+          })(role, status));
           dotsRow.appendChild(dotEl);
         });
         dotsRowWrap.appendChild(dotsRow);
@@ -1815,7 +1829,7 @@ body.panel-open #app { margin-right: var(--panel-width); transition: margin-righ
     // Agent not running — build a minimal panel from what we know
     selectedOpsPhase = null;
     selectedOpsAgent = null;
-    selectedOpsDot = { role: role, dotStatus: dotStatus, phase: phase.phase };
+    selectedOpsDot = { role: role, phase: phase.phase };
     var frag = document.createDocumentFragment();
     var tier = PHASE_TIER[phase.phase] || "?";
     var phaseLabel = (phase.label || "").replace(/\s*\(Tier\s+[A-Z]\)$/i, "");
