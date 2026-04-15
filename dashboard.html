@@ -1055,6 +1055,95 @@ body.panel-open #app { margin-right: var(--panel-width); transition: margin-righ
     });
   }
 
+  function renderMdBody(body) {
+    var frag = document.createDocumentFragment();
+    // Extract fenced code blocks before splitting
+    var tokens = [];
+    var rest = body;
+    while (true) {
+      var start = rest.indexOf("```");
+      if (start === -1) { tokens.push({ type: "text", value: rest }); break; }
+      if (start > 0) tokens.push({ type: "text", value: rest.substring(0, start) });
+      var end = rest.indexOf("```", start + 3);
+      if (end === -1) { tokens.push({ type: "text", value: rest }); break; }
+      tokens.push({ type: "code", value: rest.substring(start, end + 3) });
+      rest = rest.substring(end + 3);
+    }
+
+    tokens.forEach(function (tok) {
+      if (tok.type === "code") {
+        var code = tok.value.replace(/^```\w*\n?/, "").replace(/\n?```$/, "");
+        var pre = el("pre"); pre.appendChild(el("code", { text: code }));
+        frag.appendChild(pre);
+        return;
+      }
+      var blocks = tok.value.split(/\n\n+/);
+      for (var i = 0; i < blocks.length; i++) {
+        var block = blocks[i].trim();
+        if (!block) continue;
+
+        // Blockquote
+        if (block.charAt(0) === ">") {
+          var bq = document.createElement("blockquote");
+          bq.textContent = block.replace(/^>\s*/gm, "");
+          frag.appendChild(bq);
+          continue;
+        }
+
+        // Unordered list
+        var lines = block.split("\n");
+        if (lines[0].match(/^[-*]\s/)) {
+          var ul = document.createElement("ul");
+          lines.forEach(function (ln) {
+            var txt = ln.replace(/^[-*]\s+/, "");
+            if (txt) ul.appendChild(el("li", { text: txt }));
+          });
+          frag.appendChild(ul);
+          continue;
+        }
+
+        // Numbered list
+        if (lines[0].match(/^\d+\.\s/)) {
+          var ol = document.createElement("ol");
+          lines.forEach(function (ln) {
+            var txt = ln.replace(/^\d+\.\s+/, "");
+            if (txt) ol.appendChild(el("li", { text: txt }));
+          });
+          frag.appendChild(ol);
+          continue;
+        }
+
+        // Paragraph
+        var p = document.createElement("p");
+        p.textContent = block.replace(/\n/g, " ");
+        frag.appendChild(p);
+      }
+    });
+    return frag;
+  }
+
+  var MD_EXPANDED = ["identity", "purpose", "what you produce", "relationships"];
+
+  function renderAgentMd(sections, container) {
+    sections.forEach(function (sec) {
+      var div = el("div", { cls: "md-section" });
+      var isOpen = MD_EXPANDED.indexOf(sec.heading.toLowerCase()) !== -1;
+      if (isOpen) div.classList.add("open");
+
+      var header = el("div", { cls: "md-section-header" });
+      header.appendChild(el("span", { cls: "md-chevron", text: "\u25B6" }));
+      header.appendChild(el("span", { cls: "md-section-title", text: sec.heading }));
+      header.addEventListener("click", function () { div.classList.toggle("open"); });
+      div.appendChild(header);
+
+      var body = el("div", { cls: "md-section-body" });
+      body.appendChild(renderMdBody(sec.body));
+      div.appendChild(body);
+
+      container.appendChild(div);
+    });
+  }
+
   var NOISE_TYPES = [
     "agent.state.changed", "agent.evaluated", "agent.model.bound",
     "agent.soul.imprinted", "agent.authority.granted"
