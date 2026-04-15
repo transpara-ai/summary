@@ -1656,11 +1656,11 @@ body.panel-open #app { margin-right: var(--panel-width); transition: margin-righ
     var ds = "missing";
     if (live) { ds = "alive"; }
     else { var rs = roleStatusMap[role]; if (rs) ds = rs === "running" ? "alive" : rs; }
-    // "defined" (gray) = registered in phase system, no GitHub doc
-    // "designed" (amber) = exists in spec/roadmap, not yet registered
-    if (ds === "missing") {
-      if (AGENT_MD_NAME[role] === null) ds = "defined";
-      else if (phaseStatus === "blocked") ds = "designed";
+    // "designed" (amber) = has agent-name.md definition file
+    // "defined"  (gray)  = in AGENT_MD_NAME but no .md file yet
+    // "missing"  (red)   = not in AGENT_MD_NAME at all
+    if (ds === "missing" && role in AGENT_MD_NAME) {
+      ds = AGENT_MD_NAME[role] !== null ? "designed" : "defined";
     }
     return ds;
   }
@@ -1730,10 +1730,8 @@ body.panel-open #app { margin-right: var(--panel-width); transition: margin-righ
             var rs = roleStatusMap[role];
             if (rs) dotStatus = rs === "running" ? "alive" : rs;
           }
-          // "defined" (gray) = in phase system, no GitHub doc; "designed" (amber) = spec only
-          if (dotStatus === "missing") {
-            if (AGENT_MD_NAME[role] === null) dotStatus = "defined";
-            else if (status === "blocked") dotStatus = "designed";
+          if (dotStatus === "missing" && role in AGENT_MD_NAME) {
+            dotStatus = AGENT_MD_NAME[role] !== null ? "designed" : "defined";
           }
           var dotEl = el("div", { cls: "phase-agent-dot " + dotStatus, title: role });
           dotEl.addEventListener("click", (function (r, st) {
@@ -2072,10 +2070,8 @@ body.panel-open #app { margin-right: var(--panel-width); transition: margin-righ
           var rs = roleStatusMap[role];
           if (rs) dotStatus = rs === "running" ? "alive" : rs;
         }
-        // "defined" (gray) = in phase system, no GitHub doc; "designed" (amber) = spec only
-        if (dotStatus === "missing") {
-          if (AGENT_MD_NAME[role] === null) dotStatus = "defined";
-          else if (status === "blocked") dotStatus = "designed";
+        if (dotStatus === "missing" && role in AGENT_MD_NAME) {
+          dotStatus = AGENT_MD_NAME[role] !== null ? "designed" : "defined";
         }
         var row = el("div", { cls: "p-row", style: { cursor: "default" } });
         var lbl = el("span", { cls: "p-label", style: { display: "flex", alignItems: "center", gap: "6px", minWidth: "auto" } });
