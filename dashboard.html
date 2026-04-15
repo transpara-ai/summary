@@ -1000,16 +1000,17 @@ body.panel-open #app { margin-right: var(--panel-width); transition: margin-righ
     8: []
   };
   var PHASE_TIER = { 0: "A", 1: "A", 2: "B", 3: "B", 4: "C", 5: "C", 6: "D", 7: "D", 8: "D" };
+  var PHASE_LABEL = { 4: "Emergence" };
   // Agent definitions live in the transpara-ai fork on GitHub
   var AGENT_MD_BASE = "https://github.com/transpara-ai/hive/blob/main/agents/";
   var AGENT_MD_NAME = {
     guardian: "guardian", strategist: "strategist", planner: "planner", implementer: "implementer",
     sysmon: "sysmon", allocator: "allocator", cto: "cto", reviewer: "reviewer", spawner: "spawner",
-    researcher: "research", critic: "critic", taskmanager: null, incidentcommander: "incident-commander",
-    securityreviewer: null, memorykeeper: null, gapdetector: "gap-detector",
-    integrator: null, pm: "pm", finance: "finance", customersvc: "customer-success",
-    sre: null, devops: null, legal: "legal",
-    philosopher: "philosopher", rolearchitect: "role-architect", harmony: "harmony", politician: null
+    researcher: "research", critic: "critic", taskmanager: "task-manager", incidentcommander: "incident-commander",
+    securityreviewer: "security-reviewer", memorykeeper: "memory-keeper", gapdetector: "gap-detector",
+    integrator: "integrator", pm: "pm", finance: "finance", customersvc: "customer-success",
+    sre: "sre", devops: "devops", legal: "legal",
+    philosopher: "philosopher", rolearchitect: "role-architect", harmony: "harmony", politician: "politician"
   };
   function agentMdUrl(role) {
     var key = role.toLowerCase();
@@ -1697,7 +1698,7 @@ body.panel-open #app { margin-right: var(--panel-width); transition: margin-righ
 
       // Row 1: Name (fixed 30px, up to 2 lines)
       var nameRow = el("div", { cls: "ops-phase-row ops-phase-row-name" });
-      var cleanLabel = (p.label || "Phase " + p.phase).replace(/\s*\(Tier\s+[A-Z]\)$/i, "");
+      var cleanLabel = PHASE_LABEL[p.phase] || (p.label || "Phase " + p.phase).replace(/\s*\(Tier\s+[A-Z]\)$/i, "");
       nameRow.appendChild(el("div", { cls: "ops-phase-name", text: cleanLabel, title: cleanLabel }));
       info.appendChild(nameRow);
 
@@ -2101,7 +2102,7 @@ body.panel-open #app { margin-right: var(--panel-width); transition: margin-righ
       if (purposes.length) frag.appendChild(makeSection("Agent Purposes", purposes));
     }
 
-    var title = "Phase " + phaseNum + ": " + (p.label || "");
+    var title = "Phase " + phaseNum + ": " + (PHASE_LABEL[phaseNum] || p.label || "");
     if (isRefresh && document.body.classList.contains("panel-open")) {
       document.getElementById("panel-title").textContent = title;
       clearEl("panel-body").appendChild(frag);
@@ -2125,7 +2126,7 @@ body.panel-open #app { margin-right: var(--panel-width); transition: margin-righ
     selectedOpsDot = { role: role, phase: phase.phase };
     var frag = document.createDocumentFragment();
     var tier = PHASE_TIER[phase.phase] || "?";
-    var phaseLabel = (phase.label || "").replace(/\s*\(Tier\s+[A-Z]\)$/i, "");
+    var phaseLabel = PHASE_LABEL[phase.phase] || (phase.label || "").replace(/\s*\(Tier\s+[A-Z]\)$/i, "");
     var archRole = findRole(role);
 
     // Overview section — enrich from archData when available
@@ -2479,7 +2480,7 @@ body.panel-open #app { margin-right: var(--panel-width); transition: margin-righ
         (archData.phases || []).forEach(function (p) {
           (p.agents || []).forEach(function (a) {
             var aName = (a.name || a.role || "").toLowerCase();
-            if (aName) actorPhaseMap[aName] = { num: phaseNum(p), label: p.label || "Phase " + phaseNum(p) };
+            if (aName) actorPhaseMap[aName] = { num: phaseNum(p), label: PHASE_LABEL[phaseNum(p)] || p.label || "Phase " + phaseNum(p) };
           });
         });
 
@@ -2920,7 +2921,7 @@ body.panel-open #app { margin-right: var(--panel-width); transition: margin-righ
       var status = p.status || "blocked";
       var node = el("div", { cls: "arch-phase-node " + status }); node.setAttribute("data-phase", String(phaseNum(p)));
       var dot = el("div", { cls: "arch-phase-dot" }); dot.appendChild(el("span", { cls: "arch-phase-dot-num", text: String(phaseNum(p)) }));
-      node.appendChild(dot); node.appendChild(el("div", { cls: "ap-label", text: p.label || "Phase " + phaseNum(p) }));
+      node.appendChild(dot); node.appendChild(el("div", { cls: "ap-label", text: PHASE_LABEL[phaseNum(p)] || p.label || "Phase " + phaseNum(p) }));
       if (p.completed_at) node.appendChild(el("div", { cls: "ap-date", text: fmtISODate(p.completed_at) }));
       node.addEventListener("click", function () { openPhasePanel(phaseNum(p)); });
       barEl.appendChild(node);
@@ -2929,7 +2930,7 @@ body.panel-open #app { margin-right: var(--panel-width); transition: margin-righ
       var status = p.status || "blocked", agents = p.agents || [];
       var card = el("div", { cls: "phase-card" }); card.setAttribute("data-phase", String(phaseNum(p)));
       var head = el("div", { cls: "phase-card-head" });
-      append(head, el("div", { cls: "phase-card-title", text: "Phase " + phaseNum(p) + ": " + (p.label || "") }), statusBadgeEl(status));
+      append(head, el("div", { cls: "phase-card-title", text: "Phase " + phaseNum(p) + ": " + (PHASE_LABEL[phaseNum(p)] || p.label || "") }), statusBadgeEl(status));
       card.appendChild(head);
       if (p.notes || p.description) card.appendChild(el("div", { cls: "phase-card-desc", text: p.notes || p.description }));
       if (agents.length) {
@@ -3015,7 +3016,7 @@ body.panel-open #app { margin-right: var(--panel-width); transition: margin-righ
       var dr = phase.dependencies.map(function (dn) {
         var dp = findPhase(dn), done = dp && dp.status === "complete";
         var row = el("div", { cls: "p-row" }), val = el("span", { cls: "p-val" });
-        val.appendChild(crossLink("Phase " + dn + (dp ? " \u2014 " + dp.label : "") + (done ? " \u2713" : ""), "data-open-phase", String(dn)));
+        val.appendChild(crossLink("Phase " + dn + (dp ? " \u2014 " + (PHASE_LABEL[dn] || dp.label) : "") + (done ? " \u2713" : ""), "data-open-phase", String(dn)));
         row.appendChild(val); return row;
       });
       frag.appendChild(makeSection("Dependencies", dr));
@@ -3024,7 +3025,7 @@ body.panel-open #app { margin-right: var(--panel-width); transition: margin-righ
       var ul = el("ul", { cls: "watch-list" }); phase.exit_criteria.forEach(function (c) { ul.appendChild(el("li", { text: c })); });
       frag.appendChild(makeSection("Exit Criteria", ul));
     }
-    openArchPanel("phase", phaseNum, "Phase " + phaseNum + ": " + (phase.label || ""), frag, _isArchRefresh);
+    openArchPanel("phase", phaseNum, "Phase " + phaseNum + ": " + (PHASE_LABEL[phaseNum] || phase.label || ""), frag, _isArchRefresh);
   }
 
   // ── ARCH: Governance Trust ─────────────────────────
