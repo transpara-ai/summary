@@ -1051,6 +1051,7 @@ body.panel-open #app { margin-right: var(--panel-width); transition: margin-righ
       agentMdCache[key] = sections;
       callback(sections);
     }).catch(function () {
+      agentMdCache[key] = [];
       callback(null);
     });
   }
