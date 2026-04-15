@@ -938,6 +938,7 @@ body.panel-open #app { margin-right: var(--panel-width); transition: margin-righ
   // Ops-specific state
   var selectedOpsAgent = null; // role name of agent shown in detail panel
   var selectedOpsPhase = null; // phase number shown in detail panel
+  var selectedOpsDot = null;   // {role, phase} of non-running dot panel
   var lastOpsPhases = [];      // cached for panel refresh
 
   var PHASE_AGENTS = {
@@ -1350,6 +1351,21 @@ body.panel-open #app { margin-right: var(--panel-width); transition: margin-righ
           if (lastOpsPhases[i].phase === selectedOpsPhase) { showOpsPhasePanel(lastOpsPhases[i], liveRoles, true); found = true; break; }
         }
         if (!found) { selectedOpsPhase = null; closeDetailPanel(); }
+      } else if (selectedOpsDot) {
+        // If the agent started running since last poll, promote to full panel
+        var ag = null;
+        for (var i = 0; i < lastAgents.length; i++) {
+          if ((lastAgents[i].role || "").toLowerCase() === selectedOpsDot.role) { ag = lastAgents[i]; break; }
+        }
+        if (ag) { selectedOpsDot = null; showOpsAgentPanel(ag, true); }
+        else {
+          var ph = null;
+          for (var i = 0; i < lastOpsPhases.length; i++) {
+            if (lastOpsPhases[i].phase === selectedOpsDot.phase) { ph = lastOpsPhases[i]; break; }
+          }
+          if (ph) showOpsDotPanel(selectedOpsDot.role, selectedOpsDot.dotStatus, ph);
+          else { selectedOpsDot = null; closeDetailPanel(); }
+        }
       }
     })
     .catch(function (err) {
@@ -1636,6 +1652,7 @@ body.panel-open #app { margin-right: var(--panel-width); transition: margin-righ
   function showOpsAgentPanel(a, isRefresh) {
     selectedOpsAgent = a.role;
     selectedOpsPhase = null;
+    selectedOpsDot = null;
     // Highlight selected card
     document.querySelectorAll(".agent-card").forEach(function (c) { c.classList.remove("selected"); });
     // Find the card for this agent by role name
@@ -1704,6 +1721,7 @@ body.panel-open #app { margin-right: var(--panel-width); transition: margin-righ
     if (!isRefresh && selectedOpsPhase === phaseNum) { selectedOpsPhase = null; closeDetailPanel(); return; }
     selectedOpsPhase = phaseNum;
     if (!isRefresh) selectedOpsAgent = null;
+    selectedOpsDot = null;
     // Highlight selected phase item
     document.querySelectorAll(".ops-phase-item.selected").forEach(function (e) { e.classList.remove("selected"); });
     document.querySelectorAll(".ops-phase-item").forEach(function (e) {
@@ -1797,11 +1815,13 @@ body.panel-open #app { margin-right: var(--panel-width); transition: margin-righ
     // Agent not running — build a minimal panel from what we know
     selectedOpsPhase = null;
     selectedOpsAgent = null;
+    selectedOpsDot = { role: role, dotStatus: dotStatus, phase: phase.phase };
     var frag = document.createDocumentFragment();
     var tier = PHASE_TIER[phase.phase] || "?";
+    var phaseLabel = (phase.label || "").replace(/\s*\(Tier\s+[A-Z]\)$/i, "");
     var ov = [
       makeRow("Status", statusBadgeEl(dotStatus)),
-      makeRow("Phase", "Phase " + phase.phase + " \u2014 " + (phase.label || "")),
+      makeRow("Phase", "Phase " + phase.phase + " \u2014 " + phaseLabel),
       makeRow("Tier", tierBadgeEl(tier))
     ];
     var purpose = rolePurposeMap[role];
@@ -1954,6 +1974,7 @@ body.panel-open #app { margin-right: var(--panel-width); transition: margin-righ
     currentPanel = null;
     selectedOpsAgent = null;
     selectedOpsPhase = null;
+    selectedOpsDot = null;
     document.body.classList.remove("panel-open");
     document.querySelectorAll(".agent-card.selected, .ops-phase-item.selected").forEach(function (c) { c.classList.remove("selected"); });
     updateArchActive();
