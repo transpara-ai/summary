@@ -233,8 +233,8 @@ body {
 .phase-agent-dot { width: 6px; height: 6px; border-radius: 50%; background: var(--gray); cursor: pointer; transition: transform 0.15s; }
 .phase-agent-dot:hover { transform: scale(1.8); }
 .phase-agent-dot.alive { background: var(--green); }
-.phase-agent-dot.defined { background: var(--amber); }
-.phase-agent-dot.designed { background: var(--gray); }
+.phase-agent-dot.defined { background: var(--gray); }
+.phase-agent-dot.designed { background: var(--amber); }
 .phase-agent-dot.missing { background: var(--red); }
 
 /* Agent grid (ops) */
@@ -510,8 +510,8 @@ body {
 .role-chip.active { border-color: var(--blue); }
 .role-chip .dot { width: 7px; height: 7px; border-radius: 50%; flex-shrink: 0; }
 .dot-running  { background: var(--green); }
-.dot-defined  { background: var(--amber); }
-.dot-designed { background: var(--gray); }
+.dot-defined  { background: var(--gray); }
+.dot-designed { background: var(--amber); }
 .dot-missing  { background: var(--red); }
 .role-chip .rc-name {
   font-size: 12px; font-weight: 500; color: var(--text); flex: 1; min-width: 0;
@@ -578,8 +578,8 @@ body {
 .status-in_progress { background: rgba(59,130,246,0.15); color: var(--blue); }
 .status-blocked     { background: rgba(100,116,139,0.15); color: var(--gray); }
 .status-running     { background: rgba(34,197,94,0.15);  color: var(--green); }
-.status-defined     { background: rgba(245,158,11,0.15); color: var(--amber); }
-.status-designed    { background: rgba(100,116,139,0.15); color: var(--gray); }
+.status-defined     { background: rgba(100,116,139,0.15); color: var(--gray); }
+.status-designed    { background: rgba(245,158,11,0.15); color: var(--amber); }
 .status-missing     { background: rgba(239,68,68,0.15);  color: var(--red); }
 .phase-card-desc { font-size: 12px; color: var(--text-sec); margin-bottom: 0.75rem; line-height: 1.5; }
 .phase-card-agents { display: flex; flex-wrap: wrap; gap: 0.375rem; margin-bottom: 0.5rem; }
@@ -666,6 +666,50 @@ body.panel-open #app { margin-right: var(--panel-width); transition: margin-righ
 
 /* Panel dots (need explicit size outside .role-chip/.legend-item context) */
 .panel-body .dot { width: 7px; height: 7px; border-radius: 50%; flex-shrink: 0; display: inline-block; vertical-align: middle; }
+
+/* Agent definition (collapsible markdown sections) */
+.md-section { border-top: 1px solid var(--border); }
+.md-section:first-child { border-top: none; }
+.md-section-header {
+  display: flex; align-items: center; gap: 0.5rem; padding: 0.5rem 0;
+  cursor: pointer; user-select: none;
+}
+.md-section-header:hover { opacity: 0.8; }
+.md-chevron {
+  font-size: 10px; color: var(--text-dim); transition: transform 0.15s;
+  display: inline-block; width: 12px; text-align: center;
+}
+.md-section.open .md-chevron { transform: rotate(90deg); }
+.md-section-title {
+  font-size: 11px; font-weight: 700; text-transform: uppercase;
+  letter-spacing: 0.06em; color: var(--text-sec);
+}
+.md-section-body {
+  display: none; padding: 0 0 0.75rem 0;
+  font-size: 12px; line-height: 1.6; color: var(--text-sec);
+}
+.md-section.open .md-section-body { display: block; }
+.md-section-body p { margin: 0 0 0.5rem 0; }
+.md-section-body p:last-child { margin-bottom: 0; }
+.md-section-body ul { margin: 0 0 0.5rem 0; padding-left: 1.25rem; }
+.md-section-body li { margin-bottom: 0.25rem; }
+.md-section-body code {
+  font-family: var(--mono); font-size: 11px;
+  background: rgba(255,255,255,0.06); padding: 1px 4px; border-radius: 3px;
+}
+.md-section-body pre {
+  background: rgba(0,0,0,0.3); padding: 0.75rem; border-radius: var(--radius-sm);
+  overflow-x: auto; margin: 0.5rem 0;
+}
+.md-section-body pre code { background: none; padding: 0; }
+.md-section-body blockquote {
+  border-left: 3px solid var(--border-light); padding-left: 0.75rem;
+  color: var(--text-dim); font-style: italic; margin: 0.5rem 0;
+}
+.md-loading {
+  font-size: 11px; color: var(--text-dim); font-style: italic;
+  padding: 0.75rem 0;
+}
 
 /* Panel legend (reusable inside detail panels) */
 .panel-legend {
@@ -972,6 +1016,156 @@ body.panel-open #app { margin-right: var(--panel-width); transition: margin-righ
     if (!(key in AGENT_MD_NAME) || AGENT_MD_NAME[key] === null) return null;
     return AGENT_MD_BASE + AGENT_MD_NAME[key] + ".md";
   }
+  var AGENT_MD_RAW_BASE = "https://raw.githubusercontent.com/transpara-ai/hive/main/agents/";
+  var agentMdCache = {};
+
+  function agentMdRawUrl(role) {
+    var key = role.toLowerCase();
+    if (!(key in AGENT_MD_NAME) || AGENT_MD_NAME[key] === null) return null;
+    return AGENT_MD_RAW_BASE + AGENT_MD_NAME[key] + ".md";
+  }
+
+  function parseAgentMd(raw) {
+    var sections = [];
+    var parts = raw.split(/^## /m);
+    for (var i = 1; i < parts.length; i++) {
+      var nlIdx = parts[i].indexOf("\n");
+      if (nlIdx === -1) continue;
+      var heading = parts[i].substring(0, nlIdx).trim();
+      var body = parts[i].substring(nlIdx + 1).trim();
+      if (heading && body) sections.push({ heading: heading, body: body });
+    }
+    return sections;
+  }
+
+  function fetchAgentMd(role, callback) {
+    var key = role.toLowerCase();
+    if (key in agentMdCache) { callback(agentMdCache[key].length ? agentMdCache[key] : null); return; }
+    var url = agentMdRawUrl(key);
+    if (!url) { callback(null); return; }
+    fetch(url).then(function (res) {
+      if (!res.ok) throw new Error("HTTP " + res.status);
+      return res.text();
+    }).then(function (text) {
+      var sections = parseAgentMd(text);
+      agentMdCache[key] = sections;
+      callback(sections);
+    }).catch(function () {
+      agentMdCache[key] = [];
+      callback(null);
+    });
+  }
+
+  function mdFallbackEl(role) {
+    var wrap = el("div", { cls: "md-loading" });
+    wrap.appendChild(document.createTextNode("Definition not available \u2014 "));
+    var ghLink = document.createElement("a");
+    ghLink.href = agentMdUrl(role) || "#"; ghLink.target = "_blank"; ghLink.rel = "noopener";
+    ghLink.textContent = "View on GitHub";
+    ghLink.style.cssText = "color:var(--blue);text-decoration:none;font-size:11px";
+    wrap.appendChild(ghLink);
+    return wrap;
+  }
+
+  function renderInline(text) {
+    var frag = document.createDocumentFragment();
+    var parts = text.split(/`([^`]+)`/);
+    for (var i = 0; i < parts.length; i++) {
+      if (i % 2 === 0) { if (parts[i]) frag.appendChild(document.createTextNode(parts[i])); }
+      else { frag.appendChild(el("code", { text: parts[i] })); }
+    }
+    return frag;
+  }
+
+  function renderMdBody(body) {
+    var frag = document.createDocumentFragment();
+    // Extract fenced code blocks before splitting
+    var tokens = [];
+    var rest = body;
+    while (true) {
+      var start = rest.indexOf("```");
+      if (start === -1) { tokens.push({ type: "text", value: rest }); break; }
+      if (start > 0) tokens.push({ type: "text", value: rest.substring(0, start) });
+      var end = rest.indexOf("```", start + 3);
+      if (end === -1) { tokens.push({ type: "text", value: rest }); break; }
+      tokens.push({ type: "code", value: rest.substring(start, end + 3) });
+      rest = rest.substring(end + 3);
+    }
+
+    tokens.forEach(function (tok) {
+      if (tok.type === "code") {
+        var code = tok.value.replace(/^```\w*\n?/, "").replace(/\n?```$/, "");
+        var pre = el("pre"); pre.appendChild(el("code", { text: code }));
+        frag.appendChild(pre);
+        return;
+      }
+      var blocks = tok.value.split(/\n\n+/);
+      for (var i = 0; i < blocks.length; i++) {
+        var block = blocks[i].trim();
+        if (!block) continue;
+
+        // Blockquote
+        if (block.charAt(0) === ">") {
+          var bq = document.createElement("blockquote");
+          bq.textContent = block.replace(/^>\s*/gm, "");
+          frag.appendChild(bq);
+          continue;
+        }
+
+        // Unordered list
+        var lines = block.split("\n");
+        if (lines[0].match(/^[-*]\s/)) {
+          var ul = document.createElement("ul");
+          lines.forEach(function (ln) {
+            var txt = ln.replace(/^[-*]\s+/, "");
+            if (txt) { var li = document.createElement("li"); li.appendChild(renderInline(txt)); ul.appendChild(li); }
+          });
+          frag.appendChild(ul);
+          continue;
+        }
+
+        // Numbered list
+        if (lines[0].match(/^\d+\.\s/)) {
+          var ol = document.createElement("ol");
+          lines.forEach(function (ln) {
+            var txt = ln.replace(/^\d+\.\s+/, "");
+            if (txt) { var li = document.createElement("li"); li.appendChild(renderInline(txt)); ol.appendChild(li); }
+          });
+          frag.appendChild(ol);
+          continue;
+        }
+
+        // Paragraph
+        var p = document.createElement("p");
+        p.appendChild(renderInline(block.replace(/\n/g, " ")));
+        frag.appendChild(p);
+      }
+    });
+    return frag;
+  }
+
+  var MD_EXPANDED = ["identity", "purpose", "what you produce", "relationships"];
+
+  function renderAgentMd(sections, container) {
+    sections.forEach(function (sec) {
+      var div = el("div", { cls: "md-section" });
+      var isOpen = MD_EXPANDED.indexOf(sec.heading.toLowerCase()) !== -1;
+      if (isOpen) div.classList.add("open");
+
+      var header = el("div", { cls: "md-section-header" });
+      header.appendChild(el("span", { cls: "md-chevron", text: "\u25B6" }));
+      header.appendChild(el("span", { cls: "md-section-title", text: sec.heading }));
+      header.addEventListener("click", function () { div.classList.toggle("open"); });
+      div.appendChild(header);
+
+      var body = el("div", { cls: "md-section-body" });
+      body.appendChild(renderMdBody(sec.body));
+      div.appendChild(body);
+
+      container.appendChild(div);
+    });
+  }
+
   var NOISE_TYPES = [
     "agent.state.changed", "agent.evaluated", "agent.model.bound",
     "agent.soul.imprinted", "agent.authority.granted"
@@ -1797,6 +1991,26 @@ body.panel-open #app { margin-right: var(--panel-width); transition: margin-righ
       frag.appendChild(makeSection("Last Message", el("pre", { cls: "last-message", text: a.last_message })));
     }
 
+    // Agent Definition section — only if a .md file could exist
+    var mdRole = (a.role || "").toLowerCase();
+    if (agentMdRawUrl(mdRole)) {
+      var mdWrap = el("div", { cls: "p-section" });
+      mdWrap.appendChild(el("div", { cls: "p-section-title", text: "Agent Definition" }));
+      var mdContent = el("div");
+      mdContent.appendChild(el("div", { cls: "md-loading", text: "Loading definition\u2026" }));
+      fetchAgentMd(mdRole, function (sections) {
+        if (selectedOpsAgent !== a.role) return;
+        mdContent.textContent = "";
+        if (sections && sections.length) {
+          renderAgentMd(sections, mdContent);
+        } else {
+          mdContent.appendChild(mdFallbackEl(mdRole));
+        }
+      });
+      mdWrap.appendChild(mdContent);
+      frag.appendChild(mdWrap);
+    }
+
     // Open or update panel
     if (isRefresh && document.body.classList.contains("panel-open")) {
       // Just update content without re-animating
@@ -1856,7 +2070,7 @@ body.panel-open #app { margin-right: var(--panel-width); transition: margin-righ
         var row = el("div", { cls: "p-row", style: { cursor: "default" } });
         var lbl = el("span", { cls: "p-label", style: { display: "flex", alignItems: "center", gap: "6px", minWidth: "auto" } });
         var dotEl = el("span", { style: { width: "6px", height: "6px", borderRadius: "50%", display: "inline-block", flexShrink: "0" } });
-        dotEl.style.background = dotStatus === "alive" ? "var(--green)" : dotStatus === "designed" ? "var(--gray)" : dotStatus === "missing" ? "var(--red)" : "var(--gray)";
+        dotEl.style.background = dotStatus === "alive" ? "var(--green)" : dotStatus === "designed" ? "var(--amber)" : dotStatus === "defined" ? "var(--gray)" : dotStatus === "missing" ? "var(--red)" : "var(--gray)";
         lbl.appendChild(dotEl);
         lbl.appendChild(document.createTextNode(role));
         row.appendChild(lbl);
@@ -1968,6 +2182,25 @@ body.panel-open #app { margin-right: var(--panel-width); transition: margin-righ
     if (archRole && archRole.watch_patterns && archRole.watch_patterns.length) {
       var ul = el("ul", { cls: "watch-list" }); archRole.watch_patterns.forEach(function (w) { ul.appendChild(el("li", { text: w })); });
       frag.appendChild(makeSection("Watch Patterns", ul));
+    }
+
+    // Agent Definition section — only if a .md file could exist
+    if (agentMdRawUrl(role)) {
+      var mdWrap = el("div", { cls: "p-section" });
+      mdWrap.appendChild(el("div", { cls: "p-section-title", text: "Agent Definition" }));
+      var mdContent = el("div");
+      mdContent.appendChild(el("div", { cls: "md-loading", text: "Loading definition\u2026" }));
+      fetchAgentMd(role, function (sections) {
+        if (!selectedOpsDot || selectedOpsDot.role !== role) return;
+        mdContent.textContent = "";
+        if (sections && sections.length) {
+          renderAgentMd(sections, mdContent);
+        } else {
+          mdContent.appendChild(mdFallbackEl(role));
+        }
+      });
+      mdWrap.appendChild(mdContent);
+      frag.appendChild(mdWrap);
     }
 
     if (isRefresh && document.body.classList.contains("panel-open")) {
@@ -2758,14 +2991,16 @@ body.panel-open #app { margin-right: var(--panel-width); transition: margin-righ
         tr.appendChild(nc); var sc = el("td"); sc.appendChild(statusBadgeEl(aStatus)); tr.appendChild(sc); return tr;
       });
       frag.appendChild(makeSection("Agents (" + agents.length + ")", makeTable(["Name", "Status"], rows)));
-      var gaps = agents.filter(function (a) { var s = effectiveStatus(a.name || a.role || "", a.status).toLowerCase(); return s === "missing" || s === "designed"; });
+      var gaps = agents.filter(function (a) { var s = effectiveStatus(a.name || a.role || "", a.status).toLowerCase(); return s === "missing" || s === "designed" || s === "defined"; });
       if (gaps.length) {
         var gr = gaps.map(function (g) {
-          var row = el("div", { cls: "p-row", style: { color: "var(--red)" } }), val = el("span", { cls: "p-val" });
+          var gs2 = effectiveStatus(g.name || g.role || "", g.status).toLowerCase();
+          var gc = gs2 === "designed" ? "var(--amber)" : gs2 === "defined" ? "var(--gray)" : "var(--red)";
+          var row = el("div", { cls: "p-row", style: { color: gc } }), val = el("span", { cls: "p-val" });
           append(val, statusDotEl(g.status), document.createTextNode(" " + (g.name || g.role || "") + " \u2014 " + (g.status || "")));
           row.appendChild(val); return row;
         });
-        var gs = makeSection("Gaps (" + gaps.length + ")", gr); gs.querySelector(".p-section-title").style.color = "var(--red)"; frag.appendChild(gs);
+        frag.appendChild(makeSection("Gaps (" + gaps.length + ")", gr));
       }
     }
     if (phase.dependencies && phase.dependencies.length) {
