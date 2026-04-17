@@ -973,14 +973,23 @@ body.panel-open #app { margin-right: var(--panel-width); transition: margin-righ
   var rolePurposeMap = {}; // role key → purpose string, refreshed each ops poll
   var opsLastFetch = 0;
   var archLastFetch = 0;
-  var opsInterval  = null;
-  var archInterval = null;
   var pollController = null;
   var archPollController = null;
   var lastSuccess  = null;
   var opsConsecutiveFails = 0;
   var archConsecutiveFails = 0;
   var _connState   = "";
+
+  // SSE connection state machine (see connectSSE / recordFailure / enterFallback).
+  var CONN = {
+    state: "start",          // start | connecting | connected | reconnecting | fallback
+    source: null,            // active EventSource
+    failures: 0,             // consecutive reconnect failures
+    firstFailureAt: 0,       // timestamp of first failure in the current streak
+    reconnectTimer: null,    // setTimeout for next reconnect attempt
+    fallbackTimers: { ops: null, arch: null }
+  };
+  var MAX_EVENT_BUFFER = 200;
 
   // Ops-specific state
   var selectedOpsAgent = null; // role name of agent shown in detail panel
@@ -1274,8 +1283,13 @@ body.panel-open #app { margin-right: var(--panel-width); transition: margin-righ
     bindEventFilter();
     document.getElementById("task-pane-close").addEventListener("click", closeTaskPane);
     setInterval(tickClock, 1000);
-    // Start ops polling (default view)
-    startOpsPolling();
+
+    // Paint initial snapshot for both views, then subscribe to the live stream.
+    // Both initial fetches run in parallel with the SSE connect — whichever
+    // resolves first paints first.
+    refreshOps();
+    refreshArch();
+    connectSSE();
   }
 
   // ── VIEW SWITCHER ──────────────────────────────────
@@ -1290,36 +1304,10 @@ body.panel-open #app { margin-right: var(--panel-width); transition: margin-righ
         document.querySelectorAll(".view").forEach(function (v) { v.classList.remove("active"); });
         document.getElementById("view-" + view).classList.add("active");
 
-        if (view === "ops") {
-          closeDetailPanel();
-          startOpsPolling();
-          stopArchPolling();
-        } else {
-          closeTaskPane();
-          startArchPolling();
-          stopOpsPolling();
-        }
+        if (view === "ops") closeDetailPanel();
+        else closeTaskPane();
       });
     });
-  }
-
-  function startOpsPolling() {
-    if (opsInterval) return;
-    refreshOps();
-    opsInterval = setInterval(refreshOps, 10000);
-  }
-  function stopOpsPolling() {
-    if (opsInterval) { clearInterval(opsInterval); opsInterval = null; }
-    if (pollController) { pollController.abort(); pollController = null; }
-  }
-  function startArchPolling() {
-    if (archInterval) return;
-    refreshArch();
-    archInterval = setInterval(refreshArch, 30000);
-  }
-  function stopArchPolling() {
-    if (archInterval) { clearInterval(archInterval); archInterval = null; }
-    if (archPollController) { archPollController.abort(); archPollController = null; }
   }
 
   // ── ARCH TABS ──────────────────────────────────────
@@ -1484,6 +1472,210 @@ body.panel-open #app { margin-right: var(--panel-width); transition: margin-righ
     return opts;
   }
 
+  // ── SSE CONNECTION ─────────────────────────────────
+  // EventSource can't set headers, so we pass the API key as a query param in
+  // non-embedded mode. Embedded mode uses cookie auth.
+  function sseURL(path, typesFilter) {
+    var base = API_BASE + path;
+    var params = [];
+    if (typesFilter) params.push("types=" + encodeURIComponent(typesFilter));
+    if (!USE_COOKIE_AUTH && API_KEY) params.push("key=" + encodeURIComponent(API_KEY));
+    return base + (params.length ? "?" + params.join("&") : "");
+  }
+
+  function connectSSE() {
+    CONN.state = "connecting";
+    setConnStatus("", "Connecting\u2026");
+
+    var url = sseURL("/telemetry/sse", "hive.*,agent.*,phase.*,site.op.*");
+    var es;
+    try {
+      es = new EventSource(url, USE_COOKIE_AUTH ? { withCredentials: true } : {});
+    } catch (e) {
+      recordFailure();
+      return;
+    }
+    CONN.source = es;
+
+    es.onopen = function () {
+      CONN.state = "connected";
+      CONN.failures = 0;
+      CONN.firstFailureAt = 0;
+      clearFallbackTimers();
+      setConnStatus("connected", "Live");
+      // Resync once on (re)connect so the mirror catches up on any missed deltas.
+      // Known race: a delta that arrives on the stream between the server
+      // taking the snapshot and the REST response landing can be clobbered by
+      // the older snapshot state. Acceptable for MVP — the next delta corrects
+      // it. Upgrade path: sequence numbers on frames.
+      refreshOps();
+      refreshArch();
+    };
+
+    es.onmessage = function (ev) {
+      try {
+        var frame = JSON.parse(ev.data);
+        routeDelta(frame);
+      } catch (e) {
+        // Ignore bad frames; the next one will arrive soon.
+      }
+    };
+
+    es.onerror = function () {
+      try { es.close(); } catch (e) {}
+      if (CONN.source === es) CONN.source = null;
+      // Only react if we weren't already handling a failure for this source.
+      if (CONN.state !== "fallback") recordFailure();
+    };
+  }
+
+  function recordFailure() {
+    var now = Date.now();
+    if (CONN.failures === 0) CONN.firstFailureAt = now;
+    CONN.failures++;
+
+    // Three failures within 30s → fallback mode.
+    if (CONN.failures >= 3 && (now - CONN.firstFailureAt) <= 30000) {
+      enterFallback();
+      return;
+    }
+    // Backoff: 1s, 2s, 4s, 8s, 15s, then cap at 15s.
+    var delay = Math.min(1000 * Math.pow(2, CONN.failures - 1), 15000);
+    CONN.state = "reconnecting";
+    setConnStatus("stale", "Reconnecting (" + CONN.failures + ")");
+    if (CONN.reconnectTimer) clearTimeout(CONN.reconnectTimer);
+    CONN.reconnectTimer = setTimeout(connectSSE, delay);
+  }
+
+  function enterFallback() {
+    CONN.state = "fallback";
+    setConnStatus("error", "Fallback polling");
+    startFallbackPolling();
+    // Retry SSE every 60s until we get back online.
+    scheduleFallbackReconnect();
+  }
+
+  function scheduleFallbackReconnect() {
+    if (CONN.reconnectTimer) clearTimeout(CONN.reconnectTimer);
+    CONN.reconnectTimer = setTimeout(function tryReconnect() {
+      if (CONN.state !== "fallback") return;
+      // Reset failure counter so a single EventSource error doesn't cascade
+      // back into fallback; a successful onopen clears the timers.
+      CONN.failures = 0;
+      CONN.firstFailureAt = 0;
+      // Attempt to reconnect. onopen → clearFallbackTimers cancels any pending
+      // retry; onerror → recordFailure reschedules. We defensively arm another
+      // retry in case neither fires (e.g. browser stalls the EventSource).
+      connectSSE();
+      CONN.reconnectTimer = setTimeout(tryReconnect, 60000);
+    }, 60000);
+  }
+
+  function startFallbackPolling() {
+    clearFallbackTimers();
+    refreshOps();
+    refreshArch();
+    CONN.fallbackTimers.ops  = setInterval(refreshOps, 30000);
+    CONN.fallbackTimers.arch = setInterval(refreshArch, 60000);
+  }
+
+  function clearFallbackTimers() {
+    if (CONN.fallbackTimers.ops)  { clearInterval(CONN.fallbackTimers.ops);  CONN.fallbackTimers.ops = null; }
+    if (CONN.fallbackTimers.arch) { clearInterval(CONN.fallbackTimers.arch); CONN.fallbackTimers.arch = null; }
+    if (CONN.reconnectTimer)      { clearTimeout(CONN.reconnectTimer);       CONN.reconnectTimer = null; }
+  }
+
+  // ── SSE DELTA ROUTING ──────────────────────────────
+  // Adapter A: SSE frames mutate the existing client-side mirror (opsData,
+  // archData, lastAgents, lastOpsPhases, lastEvents) and then we invoke the
+  // existing full-snapshot renderers. No renderer rewrites needed.
+  function routeDelta(frame) {
+    if (!frame || typeof frame !== "object") return;
+    appendEventFrame(frame);
+    applyDeltaToState(frame);
+
+    // Render into both views unconditionally — SSE-driven updates are far less
+    // frequent than the old 10s polling, so painting a hidden view is cheap
+    // and avoids a stale-on-switch bug.
+    //
+    // Routing: agent.* content shape is known (TitleCase, validated on the
+    // wire). hive.* and phase.* content shapes are not yet observed — rather
+    // than shallow-merge and risk silent drift from a snake_case/TitleCase
+    // mismatch, we trigger a scoped REST resync on those event types. Hive
+    // and phase events fire rarely (chain checks, role spec changes, phase
+    // transitions) so the extra RTT is negligible.
+    var t = frame.type || "";
+    if (t.indexOf("agent.") === 0) {
+      if (opsData) {
+        renderAgents(lastAgents);
+        renderHive(opsData.hive || null, lastAgents);
+      }
+      if (archData) {
+        renderConceptStack(archData);
+        renderGovernanceTrust(archData);
+      }
+    } else if (t.indexOf("hive.") === 0) {
+      refreshOps();
+      if (t.indexOf("hive.role.") === 0 || t.indexOf("hive.spec.") === 0) refreshArch();
+    } else if (t.indexOf("phase.") === 0) {
+      refreshOps();
+      refreshArch();
+    }
+  }
+
+  function applyDeltaToState(frame) {
+    // Real SSE wire format (observed): top-level { type, source, summary,
+    // content, recorded_at }. source = role name ("sysmon"). content uses
+    // TitleCase fields specific to the event type (AgentID, Current, Previous
+    // for agent.state.changed; Result for agent.evaluated). Only agent.* is
+    // handled here — hive.* and phase.* are handled in routeDelta by
+    // triggering a REST resync, because their content shapes aren't yet
+    // observed and a shallow-merge would silently drift.
+    var t = frame.type || "";
+    if (t.indexOf("agent.") !== 0) return;
+
+    var content = frame.content || {};
+    var source = frame.source || "";
+    if (!source) return;
+    var rl = source.toLowerCase();
+    var update = {
+      role: source,
+      last_event_type: t,
+      last_event_at: frame.recorded_at || new Date().toISOString()
+    };
+    if (t === "agent.state.changed" && content.Current) update.state = content.Current;
+    if (t === "agent.evaluated" && content.Result) update.last_message = content.Result;
+    if (content.AgentID) update.actor_id = content.AgentID;
+
+    applyAgentUpdate(lastAgents, rl, update);
+    if (opsData) opsData.agents = lastAgents;
+    if (archData && Array.isArray(archData.agents)) applyAgentUpdate(archData.agents, rl, update);
+  }
+
+  function applyAgentUpdate(arr, rl, update) {
+    for (var i = 0; i < arr.length; i++) {
+      if ((arr[i].role || "").toLowerCase() === rl) {
+        Object.assign(arr[i], update);
+        return;
+      }
+    }
+    arr.push(Object.assign({}, update));
+  }
+
+  function appendEventFrame(frame) {
+    // Translate SSE frame → the shape renderEvents expects. summary and
+    // source live at the top level of the frame, not inside content.
+    var evt = {
+      event_type: frame.type || "",
+      actor_role: frame.source || "",
+      at: frame.recorded_at || new Date().toISOString(),
+      summary: frame.summary || ""
+    };
+    lastEvents.unshift(evt);
+    if (lastEvents.length > MAX_EVENT_BUFFER) lastEvents.length = MAX_EVENT_BUFFER;
+    renderEvents(lastEvents);
+  }
+
   // ═══════════════════════════════════════════════════
   // OPS: FETCH & RENDER
   // ═══════════════════════════════════════════════════
@@ -1497,7 +1689,7 @@ body.panel-open #app { margin-right: var(--panel-width); transition: margin-righ
       .catch(function () { return null; });
     var statusP = fetch(API_BASE + "/telemetry/status", opts)
       .then(function (res) {
-        if (res.status === 503) { setConnStatus("stale", "Telemetry not initialized"); return null; }
+        if (res.status === 503) return null;
         if (!res.ok) throw new Error("HTTP " + res.status);
         return res.json();
       });
@@ -1520,7 +1712,6 @@ body.panel-open #app { margin-right: var(--panel-width); transition: margin-righ
       }
       lastSuccess = Date.now();
       opsConsecutiveFails = 0;
-      setConnStatus("connected", "Live");
       opsData = data;
       opsLastFetch = Date.now();
       lastAgents = data.agents || [];
@@ -1570,8 +1761,8 @@ body.panel-open #app { margin-right: var(--panel-width); transition: margin-righ
     .catch(function (err) {
       if (err.name === "AbortError") return;
       opsConsecutiveFails++;
-      if (opsConsecutiveFails < 3) setConnStatus("stale", "Retrying\u2026");
-      else setConnStatus("error", err.message && err.message.indexOf("fetch") !== -1 ? "Cannot reach API" : "Connection lost");
+      // Connection-status UI is driven by the SSE state machine (CONN);
+      // refresh fetches don't update it so fallback mode stays visible.
     });
   }
 
@@ -2286,7 +2477,7 @@ body.panel-open #app { margin-right: var(--panel-width); transition: margin-righ
 
     fetch(API_BASE + "/telemetry/overview", makeFetchOpts(archPollController))
     .then(function (res) {
-      if (res.status === 503) { setConnStatus("stale", "Telemetry not initialized"); return null; }
+      if (res.status === 503) return null;
       if (!res.ok) throw new Error("HTTP " + res.status);
       return res.json();
     })
@@ -2294,7 +2485,6 @@ body.panel-open #app { margin-right: var(--panel-width); transition: margin-righ
       if (!data) return;
       lastSuccess = Date.now();
       archConsecutiveFails = 0;
-      setConnStatus("connected", "Live");
       archData = data;
       archLastFetch = Date.now();
       renderArchAll(data);
@@ -2303,8 +2493,7 @@ body.panel-open #app { margin-right: var(--panel-width); transition: margin-righ
     .catch(function (err) {
       if (err.name === "AbortError") return;
       archConsecutiveFails++;
-      if (archConsecutiveFails < 3) setConnStatus("stale", "Retrying\u2026");
-      else setConnStatus("error", "Cannot reach API");
+      // Connection-status UI is driven by the SSE state machine (CONN).
     });
   }
 
