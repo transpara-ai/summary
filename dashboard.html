@@ -1623,62 +1623,56 @@ body.panel-open #app { margin-right: var(--panel-width); transition: margin-righ
   }
 
   function applyDeltaToState(frame) {
+    // Real SSE wire format (observed): top-level { type, source, summary,
+    // content, recorded_at }. source = role name ("sysmon"). content uses
+    // TitleCase fields specific to the event type (AgentID, Current, Previous
+    // for agent.state.changed; Result for agent.evaluated; etc).
     var t = frame.type || "";
     var content = frame.content || {};
+    var source = frame.source || "";
+    var recordedAt = frame.recorded_at || new Date().toISOString();
 
     if (t.indexOf("agent.") === 0) {
-      var role = content.agent_role || content.role || "";
-      if (!role) return;
-      // Update the OPS agents array (lastAgents, opsData.agents).
-      var rl = role.toLowerCase();
-      var updated = false;
-      for (var i = 0; i < lastAgents.length; i++) {
-        if ((lastAgents[i].role || "").toLowerCase() === rl) {
-          lastAgents[i] = mergeAgent(lastAgents[i], content);
-          updated = true; break;
-        }
-      }
-      if (!updated) lastAgents.push(mergeAgent({ role: role }, content));
-      if (opsData) opsData.agents = lastAgents;
+      if (!source) return;
+      var rl = source.toLowerCase();
+      var update = {
+        role: source,
+        last_event_type: t,
+        last_event_at: recordedAt
+      };
+      // agent.state.changed carries the new runtime state.
+      if (t === "agent.state.changed" && content.Current) update.state = content.Current;
+      // agent.evaluated carries the reasoning result as the last message.
+      if (t === "agent.evaluated" && content.Result) update.last_message = content.Result;
+      if (content.AgentID && !update.actor_id) update.actor_id = content.AgentID;
 
-      // Mirror into ARCH payload so its agent-derived views (trust, concept
-      // stack) stay fresh without an /overview refetch.
-      if (archData && Array.isArray(archData.agents)) {
-        var archUpdated = false;
-        for (var j = 0; j < archData.agents.length; j++) {
-          if ((archData.agents[j].role || "").toLowerCase() === rl) {
-            archData.agents[j] = mergeAgent(archData.agents[j], content);
-            archUpdated = true; break;
-          }
-        }
-        if (!archUpdated) archData.agents.push(mergeAgent({ role: role }, content));
-      }
+      applyAgentUpdate(lastAgents, rl, update);
+      if (opsData) opsData.agents = lastAgents;
+      if (archData && Array.isArray(archData.agents)) applyAgentUpdate(archData.agents, rl, update);
     } else if (t.indexOf("hive.") === 0) {
-      if (opsData) {
-        opsData.hive = Object.assign({}, opsData.hive || {}, content);
-      }
-      if (archData) {
-        archData.hive = Object.assign({}, archData.hive || {}, content);
-      }
+      // hive content schema varies by subtype; shallow-merge and rely on
+      // periodic resync (SSE reconnect) to correct any drift.
+      if (opsData) opsData.hive = Object.assign({}, opsData.hive || {}, content);
+      if (archData) archData.hive = Object.assign({}, archData.hive || {}, content);
     } else if (t.indexOf("phase.") === 0) {
-      var phaseNum = content.phase;
-      if (phaseNum === undefined) return;
+      var phaseNum = content.phase != null ? content.phase : content.Phase;
+      if (phaseNum == null) return;
       if (opsData && Array.isArray(opsData.phases)) {
         mergePhaseInto(opsData.phases, phaseNum, content);
         lastOpsPhases = opsData.phases;
       }
-      if (archData && Array.isArray(archData.phases)) {
-        mergePhaseInto(archData.phases, phaseNum, content);
-      }
+      if (archData && Array.isArray(archData.phases)) mergePhaseInto(archData.phases, phaseNum, content);
     }
   }
 
-  function mergeAgent(existing, delta) {
-    // The SSE content carries partial agent fields. Shallow-merge so untouched
-    // fields (model, iteration, trust_score) survive the update.
-    var out = Object.assign({}, existing || {}, delta);
-    if (delta.agent_role && !out.role) out.role = delta.agent_role;
-    return out;
+  function applyAgentUpdate(arr, rl, update) {
+    for (var i = 0; i < arr.length; i++) {
+      if ((arr[i].role || "").toLowerCase() === rl) {
+        Object.assign(arr[i], update);
+        return;
+      }
+    }
+    arr.push(Object.assign({}, update));
   }
 
   function mergePhaseInto(phases, phaseNum, delta) {
@@ -1692,12 +1686,13 @@ body.panel-open #app { margin-right: var(--panel-width); transition: margin-righ
   }
 
   function appendEventFrame(frame) {
-    // Translate SSE frame shape → the shape renderEvents expects.
+    // Translate SSE frame → the shape renderEvents expects. summary and
+    // source live at the top level of the frame, not inside content.
     var evt = {
       event_type: frame.type || "",
-      actor_role: (frame.content && (frame.content.actor_role || frame.content.agent_role)) || "",
+      actor_role: frame.source || "",
       at: frame.recorded_at || new Date().toISOString(),
-      summary: (frame.content && (frame.content.summary || frame.content.message)) || ""
+      summary: frame.summary || ""
     };
     lastEvents.unshift(evt);
     if (lastEvents.length > MAX_EVENT_BUFFER) lastEvents.length = MAX_EVENT_BUFFER;
