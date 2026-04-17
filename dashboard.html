@@ -1504,6 +1504,10 @@ body.panel-open #app { margin-right: var(--panel-width); transition: margin-righ
       clearFallbackTimers();
       setConnStatus("connected", "Live");
       // Resync once on (re)connect so the mirror catches up on any missed deltas.
+      // Known race: a delta that arrives on the stream between the server
+      // taking the snapshot and the REST response landing can be clobbered by
+      // the older snapshot state. Acceptable for MVP — the next delta corrects
+      // it. Upgrade path: sequence numbers on frames.
       refreshOps();
       refreshArch();
     };
@@ -1559,12 +1563,11 @@ body.panel-open #app { margin-right: var(--panel-width); transition: margin-righ
       // back into fallback; a successful onopen clears the timers.
       CONN.failures = 0;
       CONN.firstFailureAt = 0;
-      // Speculatively leave fallback; if the open fails, onerror puts us back.
+      // Attempt to reconnect. onopen → clearFallbackTimers cancels any pending
+      // retry; onerror → recordFailure reschedules. We defensively arm another
+      // retry in case neither fires (e.g. browser stalls the EventSource).
       connectSSE();
-      // If we didn't reach connected synchronously, queue another retry.
-      if (CONN.state !== "connected") {
-        CONN.reconnectTimer = setTimeout(tryReconnect, 60000);
-      }
+      CONN.reconnectTimer = setTimeout(tryReconnect, 60000);
     }, 60000);
   }
 
@@ -1594,6 +1597,13 @@ body.panel-open #app { margin-right: var(--panel-width); transition: margin-righ
     // Render into both views unconditionally — SSE-driven updates are far less
     // frequent than the old 10s polling, so painting a hidden view is cheap
     // and avoids a stale-on-switch bug.
+    //
+    // Routing: agent.* content shape is known (TitleCase, validated on the
+    // wire). hive.* and phase.* content shapes are not yet observed — rather
+    // than shallow-merge and risk silent drift from a snake_case/TitleCase
+    // mismatch, we trigger a scoped REST resync on those event types. Hive
+    // and phase events fire rarely (chain checks, role spec changes, phase
+    // transitions) so the extra RTT is negligible.
     var t = frame.type || "";
     if (t.indexOf("agent.") === 0) {
       if (opsData) {
@@ -1604,21 +1614,12 @@ body.panel-open #app { margin-right: var(--panel-width); transition: margin-righ
         renderConceptStack(archData);
         renderGovernanceTrust(archData);
       }
-    } else if (t.indexOf("hive.chain.") === 0) {
-      if (opsData) renderChainAlert(opsData.hive || null);
-    } else if (t.indexOf("hive.role.") === 0 || t.indexOf("hive.spec.") === 0) {
-      if (archData) renderRoleTiers(archData);
     } else if (t.indexOf("hive.") === 0) {
-      if (opsData) {
-        renderHive(opsData.hive || null, lastAgents);
-        renderChainAlert(opsData.hive || null);
-      }
+      refreshOps();
+      if (t.indexOf("hive.role.") === 0 || t.indexOf("hive.spec.") === 0) refreshArch();
     } else if (t.indexOf("phase.") === 0) {
-      if (opsData) {
-        renderOpsPhases(opsData.phases || [], lastAgents);
-        updateMilestone(opsData.phases || [], lastAgents, opsData.hive || null);
-      }
-      if (archData) renderArchPhases(archData);
+      refreshOps();
+      refreshArch();
     }
   }
 
@@ -1626,43 +1627,29 @@ body.panel-open #app { margin-right: var(--panel-width); transition: margin-righ
     // Real SSE wire format (observed): top-level { type, source, summary,
     // content, recorded_at }. source = role name ("sysmon"). content uses
     // TitleCase fields specific to the event type (AgentID, Current, Previous
-    // for agent.state.changed; Result for agent.evaluated; etc).
+    // for agent.state.changed; Result for agent.evaluated). Only agent.* is
+    // handled here — hive.* and phase.* are handled in routeDelta by
+    // triggering a REST resync, because their content shapes aren't yet
+    // observed and a shallow-merge would silently drift.
     var t = frame.type || "";
+    if (t.indexOf("agent.") !== 0) return;
+
     var content = frame.content || {};
     var source = frame.source || "";
-    var recordedAt = frame.recorded_at || new Date().toISOString();
+    if (!source) return;
+    var rl = source.toLowerCase();
+    var update = {
+      role: source,
+      last_event_type: t,
+      last_event_at: frame.recorded_at || new Date().toISOString()
+    };
+    if (t === "agent.state.changed" && content.Current) update.state = content.Current;
+    if (t === "agent.evaluated" && content.Result) update.last_message = content.Result;
+    if (content.AgentID) update.actor_id = content.AgentID;
 
-    if (t.indexOf("agent.") === 0) {
-      if (!source) return;
-      var rl = source.toLowerCase();
-      var update = {
-        role: source,
-        last_event_type: t,
-        last_event_at: recordedAt
-      };
-      // agent.state.changed carries the new runtime state.
-      if (t === "agent.state.changed" && content.Current) update.state = content.Current;
-      // agent.evaluated carries the reasoning result as the last message.
-      if (t === "agent.evaluated" && content.Result) update.last_message = content.Result;
-      if (content.AgentID && !update.actor_id) update.actor_id = content.AgentID;
-
-      applyAgentUpdate(lastAgents, rl, update);
-      if (opsData) opsData.agents = lastAgents;
-      if (archData && Array.isArray(archData.agents)) applyAgentUpdate(archData.agents, rl, update);
-    } else if (t.indexOf("hive.") === 0) {
-      // hive content schema varies by subtype; shallow-merge and rely on
-      // periodic resync (SSE reconnect) to correct any drift.
-      if (opsData) opsData.hive = Object.assign({}, opsData.hive || {}, content);
-      if (archData) archData.hive = Object.assign({}, archData.hive || {}, content);
-    } else if (t.indexOf("phase.") === 0) {
-      var phaseNum = content.phase != null ? content.phase : content.Phase;
-      if (phaseNum == null) return;
-      if (opsData && Array.isArray(opsData.phases)) {
-        mergePhaseInto(opsData.phases, phaseNum, content);
-        lastOpsPhases = opsData.phases;
-      }
-      if (archData && Array.isArray(archData.phases)) mergePhaseInto(archData.phases, phaseNum, content);
-    }
+    applyAgentUpdate(lastAgents, rl, update);
+    if (opsData) opsData.agents = lastAgents;
+    if (archData && Array.isArray(archData.agents)) applyAgentUpdate(archData.agents, rl, update);
   }
 
   function applyAgentUpdate(arr, rl, update) {
@@ -1673,16 +1660,6 @@ body.panel-open #app { margin-right: var(--panel-width); transition: margin-righ
       }
     }
     arr.push(Object.assign({}, update));
-  }
-
-  function mergePhaseInto(phases, phaseNum, delta) {
-    for (var i = 0; i < phases.length; i++) {
-      if (phases[i].phase === phaseNum) {
-        phases[i] = Object.assign({}, phases[i], delta);
-        return;
-      }
-    }
-    phases.push(Object.assign({ phase: phaseNum }, delta));
   }
 
   function appendEventFrame(frame) {
