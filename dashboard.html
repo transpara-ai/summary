@@ -998,10 +998,10 @@ body.panel-open #app { margin-right: var(--panel-width); transition: margin-righ
 
   var PHASE_AGENTS = {
     0: ["guardian", "strategist", "planner", "implementer"],
-    1: ["sysmon", "allocator"],
+    1: ["sysmon", "allocator", "checkpoint-verifier"],
     2: ["cto", "reviewer"],
     3: ["spawner"],
-    4: ["researcher", "critic", "taskmanager", "incidentcommander", "securityreviewer", "memorykeeper", "gapdetector"],
+    4: ["researcher", "critic", "task-curator", "incidentcommander", "securityreviewer", "memorykeeper", "gapdetector"],
     5: ["integrator"],
     6: ["pm", "finance", "customersvc", "sre", "devops", "legal"],
     7: ["philosopher", "rolearchitect", "harmony", "politician"],
@@ -1014,11 +1014,12 @@ body.panel-open #app { margin-right: var(--panel-width); transition: margin-righ
   var AGENT_MD_NAME = {
     guardian: "guardian", strategist: "strategist", planner: "planner", implementer: "implementer",
     sysmon: "sysmon", allocator: "allocator", cto: "cto", reviewer: "reviewer", spawner: "spawner",
-    researcher: "research", critic: "critic", taskmanager: "task-manager", incidentcommander: "incident-commander",
+    researcher: "research", critic: "critic", "task-curator": null, incidentcommander: "incident-commander",
     securityreviewer: "security-reviewer", memorykeeper: "memory-keeper", gapdetector: "gap-detector",
     integrator: "integrator", pm: "pm", finance: "finance", customersvc: "customer-success",
     sre: "sre", devops: "devops", legal: "legal",
-    philosopher: "philosopher", rolearchitect: "role-architect", harmony: "harmony", politician: "politician"
+    philosopher: "philosopher", rolearchitect: "role-architect", harmony: "harmony", politician: "politician",
+    "checkpoint-verifier": null
   };
   function agentMdUrl(role) {
     var key = role.toLowerCase();
