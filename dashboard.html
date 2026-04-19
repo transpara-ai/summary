@@ -949,11 +949,10 @@ body.panel-open #app { margin-right: var(--panel-width); transition: margin-righ
     document.getElementById("cfg-key").addEventListener("keydown", function (e) {
       if (e.key === "Enter") connect();
     });
-  } else {
-    document.getElementById("app").style.display = "flex";
-    document.getElementById("topbar-api").textContent = API_BASE;
-    init();
   }
+  // App bootstrap runs at the bottom of the IIFE (search: BOOTSTRAP)
+  // so top-level `var` initializers (CONN, opsData, etc.) have evaluated
+  // before init() → connectSSE() touches them.
 
   function connect() {
     var api = document.getElementById("cfg-api").value.trim().replace(/\/$/, "");
@@ -3406,6 +3405,13 @@ body.panel-open #app { margin-right: var(--panel-width); transition: margin-righ
     var thead = el("tr");
     ["Agent", "Trust Score", "Authority Level"].forEach(function (h) { thead.appendChild(el("th", { text: h })); });
     table.appendChild(thead); rows.forEach(function (r) { table.appendChild(r); }); container.appendChild(table);
+  }
+
+  // BOOTSTRAP — deferred until all top-level `var` initializers have run.
+  if (API_BASE || embedded) {
+    document.getElementById("app").style.display = "flex";
+    document.getElementById("topbar-api").textContent = API_BASE;
+    init();
   }
 
 }());
