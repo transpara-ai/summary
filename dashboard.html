@@ -996,29 +996,45 @@ body.panel-open #app { margin-right: var(--panel-width); transition: margin-righ
   var selectedOpsDot = null;   // {role, phase} for non-running dot panel restore
   var lastOpsPhases = [];      // cached for panel refresh
 
-  var PHASE_AGENTS = {
-    0: ["guardian", "strategist", "planner", "implementer"],
-    1: ["sysmon", "allocator"],
-    2: ["cto", "reviewer"],
-    3: ["spawner"],
-    4: ["researcher", "critic", "taskmanager", "incidentcommander", "securityreviewer", "memorykeeper", "gapdetector"],
-    5: ["integrator"],
-    6: ["pm", "finance", "customersvc", "sre", "devops", "legal"],
-    7: ["philosopher", "rolearchitect", "harmony", "politician"],
-    8: []
-  };
+  // Phase → agent roster is now served by the backend under
+  // /telemetry/status → phases[].agents[] (each {role, status}). No
+  // hardcoded map here — the backend is the single source of truth.
   var PHASE_TIER = { 0: "A", 1: "A", 2: "B", 3: "B", 4: "C", 5: "C", 6: "D", 7: "D", 8: "D" };
   var PHASE_LABEL = { 4: "Emergence" };
-  // Agent definitions live in the transpara-ai fork on GitHub
+  // Agent definitions live in the transpara-ai fork on GitHub.
+  // Map: role name (as emitted by the backend) → markdown filename (without .md).
+  // Value null means no MD file exists for that role yet; the dot is rendered
+  // without a clickable doc link.
   var AGENT_MD_BASE = "https://github.com/transpara-ai/hive/blob/main/agents/";
   var AGENT_MD_NAME = {
-    guardian: "guardian", strategist: "strategist", planner: "planner", implementer: "implementer",
-    sysmon: "sysmon", allocator: "allocator", cto: "cto", reviewer: "reviewer", spawner: "spawner",
-    researcher: "research", critic: "critic", taskmanager: "task-manager", incidentcommander: "incident-commander",
-    securityreviewer: "security-reviewer", memorykeeper: "memory-keeper", gapdetector: "gap-detector",
-    integrator: "integrator", pm: "pm", finance: "finance", customersvc: "customer-success",
-    sre: "sre", devops: "devops", legal: "legal",
-    philosopher: "philosopher", rolearchitect: "role-architect", harmony: "harmony", politician: "politician"
+    "guardian": "guardian",
+    "strategist": "strategist",
+    "planner": "planner",
+    "implementer": "implementer",
+    "sysmon": "sysmon",
+    "allocator": "allocator",
+    "checkpoint-verifier": null,
+    "cto": "cto",
+    "reviewer": "reviewer",
+    "spawner": "spawner",
+    "researcher": "research",
+    "critic": "critic",
+    "task-curator": null,
+    "incidentcommander": "incident-commander",
+    "securityreviewer": "security-reviewer",
+    "memorykeeper": "memory-keeper",
+    "gapdetector": "gap-detector",
+    "integrator": "integrator",
+    "pm": "pm",
+    "finance": "finance",
+    "customersvc": "customer-success",
+    "sre": "sre",
+    "devops": "devops",
+    "legal": "legal",
+    "philosopher": "philosopher",
+    "rolearchitect": "role-architect",
+    "harmony": "harmony",
+    "politician": "politician"
   };
   function agentMdUrl(role) {
     var key = role.toLowerCase();
@@ -1809,13 +1825,16 @@ body.panel-open #app { margin-right: var(--panel-width); transition: margin-righ
       return;
     }
 
-    var phaseAgents = PHASE_AGENTS[frontier.phase] || [];
+    // frontier.agents comes from the backend: [{role, status}, ...]
+    var phaseAgentRoles = (Array.isArray(frontier.agents) ? frontier.agents : [])
+      .map(function (e) { return (e.role || "").toLowerCase(); })
+      .filter(function (r) { return r; });
     var liveRoles = {};
     agents.forEach(function (a) {
       var r = (a.role || "").toLowerCase(), s = (a.state || "").toLowerCase();
       if (r && s !== "retired") liveRoles[r] = true;
     });
-    var missing = phaseAgents.filter(function (r) { return !liveRoles[r]; });
+    var missing = phaseAgentRoles.filter(function (r) { return !liveRoles[r]; });
     var label = (frontier.label || "Phase " + frontier.phase).replace(/\s*\(Tier\s+[A-Z]\)$/i, "");
     var status = (frontier.status || "blocked").toLowerCase();
 
@@ -1910,17 +1929,26 @@ body.panel-open #app { margin-right: var(--panel-width); transition: margin-righ
       statusRow.appendChild(el("span", { cls: "phase-status-badge " + status, text: status.replace("_", " ") }));
       info.appendChild(statusRow);
 
-      // Row 5: Agent dots
+      // Row 5: Agent dots — roster comes from the backend (phases[].agents[]).
+      // Each entry is {role, status} where status is one of
+      // "running" | "defined" | "designed" | "missing" | "unknown".
+      // liveRoles overrides status="running" when an agent snapshot confirms
+      // the agent is currently active (catches cases where role_definitions
+      // lags behind agent snapshots on startup).
       var dotsRowWrap = el("div", { cls: "ops-phase-row ops-phase-row-dots" });
-      var phaseAgents = PHASE_AGENTS[p.phase];
-      if (phaseAgents && phaseAgents.length) {
+      var phaseAgents = Array.isArray(p.agents) ? p.agents : [];
+      if (phaseAgents.length) {
         var dotsRow = el("div", { cls: "phase-agent-dots" });
-        phaseAgents.forEach(function (role) {
-          var dotStatus = "missing";
-          if (liveRoles[role]) { dotStatus = "alive"; }
-          else { var rs = roleStatusMap[role]; if (rs === "running") dotStatus = "alive"; }
-          if (dotStatus !== "alive" && role in AGENT_MD_NAME) {
-            dotStatus = AGENT_MD_NAME[role] !== null ? "designed" : "defined";
+        phaseAgents.forEach(function (entry) {
+          var role = (entry.role || "").toLowerCase();
+          var backendStatus = (entry.status || "").toLowerCase();
+          var dotStatus;
+          if (liveRoles[role] || backendStatus === "running") {
+            dotStatus = "alive";
+          } else if (backendStatus === "defined" || backendStatus === "designed" || backendStatus === "missing") {
+            dotStatus = backendStatus;
+          } else {
+            dotStatus = "missing";
           }
           var dotEl = el("div", { cls: "phase-agent-dot " + dotStatus, title: role });
           dotEl.addEventListener("click", (function (r, st) {
@@ -2249,15 +2277,19 @@ body.panel-open #app { margin-right: var(--panel-width); transition: margin-righ
       frag.appendChild(makeSection("Description", desc));
     }
 
-    // Agent roster with names and status dots
-    var phaseAgents = PHASE_AGENTS[phaseNum];
-    if (phaseAgents && phaseAgents.length) {
-      var agentRows = phaseAgents.map(function (role) {
-        var dotStatus = "missing";
-        if (liveRoles && liveRoles[role]) { dotStatus = "alive"; }
-        else { var rs = roleStatusMap[role]; if (rs === "running") dotStatus = "alive"; }
-        if (dotStatus !== "alive" && role in AGENT_MD_NAME) {
-          dotStatus = AGENT_MD_NAME[role] !== null ? "designed" : "defined";
+    // Agent roster comes from the backend: p.agents = [{role, status}, ...]
+    var phaseAgents = Array.isArray(p.agents) ? p.agents : [];
+    if (phaseAgents.length) {
+      var agentRows = phaseAgents.map(function (entry) {
+        var role = (entry.role || "").toLowerCase();
+        var backendStatus = (entry.status || "").toLowerCase();
+        var dotStatus;
+        if ((liveRoles && liveRoles[role]) || backendStatus === "running") {
+          dotStatus = "alive";
+        } else if (backendStatus === "defined" || backendStatus === "designed" || backendStatus === "missing") {
+          dotStatus = backendStatus;
+        } else {
+          dotStatus = "missing";
         }
         var row = el("div", { cls: "p-row", style: { cursor: "default" } });
         var lbl = el("span", { cls: "p-label", style: { display: "flex", alignItems: "center", gap: "6px", minWidth: "auto" } });
@@ -2283,9 +2315,10 @@ body.panel-open #app { margin-right: var(--panel-width); transition: margin-righ
     }
 
     // Purpose from rolePurposeMap for each agent
-    if (phaseAgents && phaseAgents.length) {
+    if (phaseAgents.length) {
       var purposes = [];
-      phaseAgents.forEach(function (role) {
+      phaseAgents.forEach(function (entry) {
+        var role = (entry.role || "").toLowerCase();
         var purpose = rolePurposeMap[role];
         if (purpose) purposes.push(makeRow(role, purpose));
       });
