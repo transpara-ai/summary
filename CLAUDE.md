@@ -32,3 +32,14 @@ Dashboard requires a running work-server instance for live data. Without `api` a
 - Uses vanilla JS fetch to poll the telemetry API. Connection state is tracked with a pulsing indicator (green=live, gray=stale, red=failed).
 - Top-level view switcher: Mission Control (ops monitoring) and Architecture (structural understanding). Only the active view's endpoint is polled.
 - The work-server has `Access-Control-Allow-Origin: *` so cross-origin fetch works from any serving origin.
+
+
+## Transpara TLC workflow
+
+For software changes in this transpara-ai repository, use the host-installed
+`transpara-tlc` plugin's `tlc` skill. Default to Routine and escalate only under
+its route rules. The canonical source is [transpara-ai/tlc](https://github.com/transpara-ai/tlc).
+
+TLC is an external, unpinned developer dependency. Host maintainers install and
+update it; repository configuration does not pin, install, enable, or copy the
+workflow. Preserve the project-specific instructions and verification above.
